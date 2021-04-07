@@ -1,65 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
+	"time"
 
+	mqtt "github.com/M4THYOU/some_mqtt_broker/broker"
 	"github.com/M4THYOU/some_mqtt_broker/config"
 )
-
-type utf8Str = []byte
-type utf8StrPair = utf8Str
-type variableByteInt = []uint8
-type oneByteInt = uint8
-type twoByteInt = uint16
-type fourByteInt = uint32
-type binaryData struct {
-	length twoByteInt
-	data   []byte // of the specified length.
-}
-
-// Define all the packet structs.
-type Connect struct {
-	// Variable Header
-	ProtocolName    utf8Str // UTF-8 encoded string, must be 'MQTT'
-	ProtocolVersion oneByteInt
-	Flags           ConnectFlags
-	KeepAlive       twoByteInt
-	// Properties (Still in Variable Header)
-	PropertyLength             variableByteInt
-	SessionExpiryInterval      fourByteInt
-	ReceiveMaximum             twoByteInt
-	MaximumPacketSize          fourByteInt
-	TopicAliasMaximum          twoByteInt
-	RequestResponseInformation oneByteInt // 0 or 1.
-	RequestProblemInformation  oneByteInt // 0 or 1.
-	UserProperty               utf8StrPair
-	AuthMethod                 utf8Str
-	AuthData                   binaryData
-}
-type ConnectFlags struct {
-	CleanStart   bool
-	WillFlag     bool
-	WillQos      uint8 // consisting only of 2 bits. Valid values are 0, 1, 2. Not 3!
-	WillRetain   bool
-	PasswordFlag bool
-	UserNameFlag bool
-}
-type Connack struct{}
-type Publish struct{}
-type Puback struct{}
-type Pubrec struct{}
-type Pubrel struct{}
-type Pubcomp struct{}
-type Subscribe struct{}
-type Suback struct{}
-type Unsubscribe struct{}
-type Unsuback struct{}
-type Pingreq struct{}
-type Pingresp struct{}
-type Disconnect struct{}
-type Auth struct{}
 
 func printRawBuffer(buf []byte, len int) {
 	for i := 0; i < len; i++ {
@@ -67,24 +17,39 @@ func printRawBuffer(buf []byte, len int) {
 	}
 }
 
-func handleRequest(conn net.Conn) {
+func listen(conn net.Conn) {
+	defer conn.Close()
+	rdr := bufio.NewReader(conn)
 	for {
-		// Make buffer to hold incoming data.
-		buf := make([]byte, config.MaxPacketSize)
-		// Read incoming connection into the buffer.
-		reqLen, err := conn.Read(buf)
-		printRawBuffer(buf, reqLen)
+		conn.SetDeadline(time.Now().Add(time.Second * 120))
+		err := mqtt.ProcessPacket(rdr)
 		if err != nil {
-			fmt.Println("Error reading:", err.Error())
-			conn.Close()
-			return
+			fmt.Println("Error processing:", err.Error())
+			break
 		}
-		// Send response back to contacting device.
-		result := fmt.Sprintf("Message received: %d", reqLen)
-		fmt.Println(result)
-		// conn.Write([]byte(result))
-		// Close when done.
-		// conn.Close()
+
+		// // Make buffer to hold incoming data.
+		// fmt.Println("a")
+		// buf := make([]byte, config.MaxPacketSize)
+		// // Read incoming connection into the buffer.
+		// fmt.Println("b")
+		// reqLen, err := conn.Read(buf)
+		// fmt.Println("c")
+		// printRawBuffer(buf, reqLen)
+		// fmt.Println("d")
+		// if err != nil {
+		// 	fmt.Println("Error reading:", err.Error())
+		// 	break
+		// }
+		// err = mqtt.ProcessPacket(rdr)
+		// if err != nil {
+		// 	fmt.Println("Error processing:", err.Error())
+		// 	break
+		// }
+		// // Send response back to contacting device.
+		// result := fmt.Sprintf("Message received: %d", reqLen)
+		// fmt.Println(result)
+		// break
 	}
 
 }
@@ -106,7 +71,7 @@ func main() {
 			fmt.Println("Error accepting: ", err.Error())
 			os.Exit(2)
 		}
-		go handleRequest(conn)
+		go listen(conn)
 	}
 
 }
