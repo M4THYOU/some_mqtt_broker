@@ -233,6 +233,7 @@ func processVarHeader(rdr *bufio.Reader, reqType byte, remainingLength uint64) e
 	case authCode:
 		handleAuth(rdr, remainingLength)
 	}
+	return nil
 
 	// for {
 	// 	b, err := rdr.ReadByte()
