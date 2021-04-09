@@ -11,45 +11,17 @@ import (
 	"github.com/M4THYOU/some_mqtt_broker/config"
 )
 
-func printRawBuffer(buf []byte, len int) {
-	for i := 0; i < len; i++ {
-		fmt.Printf("%d: %08b\n", i, buf[i])
-	}
-}
-
 func listen(conn net.Conn) {
 	defer conn.Close()
 	rdr := bufio.NewReader(conn)
 	for {
-		conn.SetDeadline(time.Now().Add(time.Second * 120))
+		// to get rid of hanging/broken connections.
+		conn.SetDeadline(time.Now().Add(time.Second * 60))
 		err := mqtt.ProcessPacket(rdr)
 		if err != nil {
 			fmt.Println("Error processing:", err.Error())
 			break
 		}
-
-		// // Make buffer to hold incoming data.
-		// fmt.Println("a")
-		// buf := make([]byte, config.MaxPacketSize)
-		// // Read incoming connection into the buffer.
-		// fmt.Println("b")
-		// reqLen, err := conn.Read(buf)
-		// fmt.Println("c")
-		// printRawBuffer(buf, reqLen)
-		// fmt.Println("d")
-		// if err != nil {
-		// 	fmt.Println("Error reading:", err.Error())
-		// 	break
-		// }
-		// err = mqtt.ProcessPacket(rdr)
-		// if err != nil {
-		// 	fmt.Println("Error processing:", err.Error())
-		// 	break
-		// }
-		// // Send response back to contacting device.
-		// result := fmt.Sprintf("Message received: %d", reqLen)
-		// fmt.Println(result)
-		// break
 	}
 
 }

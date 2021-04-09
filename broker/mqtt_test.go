@@ -1,6 +1,8 @@
 package broker
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"testing"
 )
@@ -38,6 +40,12 @@ const (
 	disconnectFirstByte  = byte(224) // 11100000
 	authFirstByte        = byte(240) // 11110000
 )
+
+func printRawBuffer(buf []byte, len int) {
+	for i := 0; i < len; i++ {
+		fmt.Printf("%d: %08b\n", i, buf[i])
+	}
+}
 
 func TestGetRequestType(t *testing.T) {
 	b := getRequestType(connectFirstByte)
@@ -148,4 +156,32 @@ func TestGetRequestType(t *testing.T) {
 	if b != authCode {
 		t.Fatalf("Auth bytes should be equal: %08b, %08b", b, authCode)
 	}
+}
+
+func checkSliceProtocol(buf []byte, t *testing.T, shouldPass bool) {
+	rdr := bufio.NewReader(bytes.NewReader(buf))
+	err := verifyProtocol(rdr)
+	if err != nil && shouldPass {
+		t.Fatalf("Invalid protocol: %v", err.Error())
+	} else if err == nil && !shouldPass {
+		t.Fatalf("Should have been an invalid protocol: %v", err.Error())
+	}
+}
+
+func TestVerifyProtocol(t *testing.T) {
+	// TODO MORE TESTS! make sure it works. Try bad examples.
+	buf := []byte{4, 'M', 'Q', 'T', 'T'}
+	checkSliceProtocol(buf, t, true)
+	buf = []byte{4, 'M', 'Q', 'T', 'T', 'T', 'T', 0x2d}
+	checkSliceProtocol(buf, t, true)
+	buf = []byte{4, 'm', 'Q', 'T', 'T'}
+	checkSliceProtocol(buf, t, false)
+	buf = []byte{5, 'M', 'Q', 'T', 'T', 'T'}
+	checkSliceProtocol(buf, t, false)
+	buf = []byte{4, 'm', 'q', 't', 't'}
+	checkSliceProtocol(buf, t, false)
+	buf = []byte{1, 'M', 'Q', 'T', 'T'}
+	checkSliceProtocol(buf, t, false)
+	buf = []byte{0, 4, 'M', 'Q', 'T', 'T'} // expects first byte to be LSB of the protocol. SHOULD BE 4!
+	checkSliceProtocol(buf, t, false)
 }

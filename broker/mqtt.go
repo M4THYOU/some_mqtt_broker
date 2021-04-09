@@ -72,65 +72,79 @@ type Pingresp struct{}
 type Disconnect struct{}
 type Auth struct{}
 
-func handleConnect(rdr *bufio.Reader, remainingLength uint64) {
+func handleConnect(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Connect")
-	// log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handleConnack(rdr *bufio.Reader, remainingLength uint64) {
+func handleConnack(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Connack")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handlePublish(rdr *bufio.Reader, remainingLength uint64) {
+func handlePublish(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Publish")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handlePuback(rdr *bufio.Reader, remainingLength uint64) {
+func handlePuback(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Puback")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handlePubrec(rdr *bufio.Reader, remainingLength uint64) {
+func handlePubrec(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Pubrec")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handlePubrel(rdr *bufio.Reader, remainingLength uint64) {
+func handlePubrel(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Pubrel")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handlePubcomp(rdr *bufio.Reader, remainingLength uint64) {
+func handlePubcomp(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Pubcomp")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handleSubscribe(rdr *bufio.Reader, remainingLength uint64) {
+func handleSubscribe(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Subscribe")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handleSuback(rdr *bufio.Reader, remainingLength uint64) {
+func handleSuback(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Suback")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handleUnsubscribe(rdr *bufio.Reader, remainingLength uint64) {
+func handleUnsubscribe(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Unsubscribe")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handleUnsuback(rdr *bufio.Reader, remainingLength uint64) {
+func handleUnsuback(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Unsuback")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handlePingreq(rdr *bufio.Reader, remainingLength uint64) {
+func handlePingreq(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Pingreq")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handlePingresp(rdr *bufio.Reader, remainingLength uint64) {
+func handlePingresp(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Pingresp")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handleDisconnect(rdr *bufio.Reader, remainingLength uint64) {
+func handleDisconnect(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Disconnect")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
-func handleAuth(rdr *bufio.Reader, remainingLength uint64) {
+func handleAuth(rdr *bufio.Reader, remainingLength uint64) error {
 	fmt.Println("Handle Auth")
 	log.Fatalln("Not yet implemented.")
+	return nil
 }
 
 func getRequestType(b byte) byte {
@@ -176,72 +190,76 @@ func processFixedHeader(rdr *bufio.Reader) (byte, uint64, error) {
 	return reqType, remainingLength, nil
 }
 
+func verifyProtocol(rdr *bufio.Reader) error {
+	lsb, err := rdr.ReadByte() // should be 00000100, i.e. 4
+	if err != nil {
+		return err
+	}
+	m, err := rdr.ReadByte()
+	if err != nil {
+		return err
+	}
+	q, err := rdr.ReadByte()
+	if err != nil {
+		return err
+	}
+	t1, err := rdr.ReadByte()
+	if err != nil {
+		return err
+	}
+	t2, err := rdr.ReadByte()
+	if err != nil {
+		return err
+	}
+	if lsb != 0x04 || m != 'M' || q != 'Q' || t1 != 'T' || t2 != 'T' {
+		msg := fmt.Sprintf("Got invalid protocol:\n%08b\n%08b\n%08b\n%08b\n%08b\n\nExpected:\n%08b\n%08b\n%08b\n%08b\n%08b", lsb, m, q, t1, t2, 0x04, 'M', 'Q', 'T', 'T')
+		return errors.New(msg)
+	}
+	return nil
+}
+
 func processVarHeader(rdr *bufio.Reader, reqType byte, remainingLength uint64) error {
 	fmt.Println("The rest:")
 
 	// TODO: verify the protocol is set to 'MQTT'
-	// lsb, err := rdr.ReadByte() // should be 00000100, 4
-	// if err != nil {
-	// 	return err
-	// }
-	// m, err := rdr.ReadByte()
-	// if err != nil {
-	// 	return err
-	// }
-	// q, err := rdr.ReadByte()
-	// if err != nil {
-	// 	return err
-	// }
-	// t, err := rdr.ReadByte()
-	// if err != nil {
-	// 	return err
-	// }
-	// t, err = rdr.ReadByte()
-	// if err != nil {
-	// 	return err
-	// }
+	err := verifyProtocol(rdr)
+	if err != nil {
+		return err
+	}
 
 	switch reqType {
 	case connectCode:
-		handleConnect(rdr, remainingLength)
+		err = handleConnect(rdr, remainingLength)
 	case connackCode:
-		handleConnack(rdr, remainingLength)
+		err = handleConnack(rdr, remainingLength)
 	case publishCode:
-		handlePublish(rdr, remainingLength)
+		err = handlePublish(rdr, remainingLength)
 	case pubackCode:
-		handlePuback(rdr, remainingLength)
+		err = handlePuback(rdr, remainingLength)
 	case pubrecCode:
-		handlePubrec(rdr, remainingLength)
+		err = handlePubrec(rdr, remainingLength)
 	case pubrelCode:
-		handlePubrel(rdr, remainingLength)
+		err = handlePubrel(rdr, remainingLength)
 	case pubcompCode:
-		handlePubcomp(rdr, remainingLength)
+		err = handlePubcomp(rdr, remainingLength)
 	case subscribeCode:
-		handleSubscribe(rdr, remainingLength)
+		err = handleSubscribe(rdr, remainingLength)
 	case subackCode:
-		handleSuback(rdr, remainingLength)
+		err = handleSuback(rdr, remainingLength)
 	case unsubscribeCode:
-		handleUnsubscribe(rdr, remainingLength)
+		err = handleUnsubscribe(rdr, remainingLength)
 	case unsubackCode:
-		handleUnsuback(rdr, remainingLength)
+		err = handleUnsuback(rdr, remainingLength)
 	case pingreqCode:
-		handlePingreq(rdr, remainingLength)
+		err = handlePingreq(rdr, remainingLength)
 	case pingrespCode:
-		handlePingresp(rdr, remainingLength)
+		err = handlePingresp(rdr, remainingLength)
 	case disconnectCode:
-		handleDisconnect(rdr, remainingLength)
+		err = handleDisconnect(rdr, remainingLength)
 	case authCode:
-		handleAuth(rdr, remainingLength)
+		err = handleAuth(rdr, remainingLength)
 	}
-	return nil
-
-	// for {
-	// 	b, err := rdr.ReadByte()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	fmt.Printf("%08b\n", b)
-	// }
+	return err
 
 }
 
