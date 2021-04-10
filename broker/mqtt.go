@@ -29,6 +29,8 @@ const (
 	authCode        = 0x0F
 )
 
+// var connectPropIdentifiers = [1]byte{0x11, 0x21, 0x27, 0x22, 0x19, 0x17, 0x26, 0x15, 0x16}
+
 // Define all the packet structs.
 type Connect struct {
 	// Variable Header
@@ -68,6 +70,27 @@ type Pingreq struct{}
 type Pingresp struct{}
 type Disconnect struct{}
 type Auth struct{}
+
+func decodeVarByteInt(rdr *bufio.Reader) (uint32, error) {
+	var multiplier, val uint32 = 1, 0
+	var b byte
+	var err error
+	for {
+		b, err = rdr.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		val += uint32(b&0x7F) * multiplier
+		if multiplier > 128*128*128 {
+			return 0, errors.New("malformed variable byte integer")
+		}
+		multiplier *= 128
+		if (b & 0x80) == 0 {
+			break
+		}
+	}
+	return val, nil
+}
 
 func getConnectFlags(b byte) (*ConnectFlags, error) {
 	userNameFlag := ((b & 0x80) >> 7) == 1

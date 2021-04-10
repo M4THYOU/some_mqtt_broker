@@ -222,26 +222,73 @@ func TestGetConnectFlags(t *testing.T) {
 	checkConnectFlags(t, 1, &ConnectFlags{false, false, false, 0, false, false}, false) // 00000001: fail => reserved bit is 1
 }
 
-func checkKeepAlive(t *testing.T, i, expected uint16, shouldPass bool) {
+func checkKeepAlive(t *testing.T, i, expected uint16) {
 	// Convert the int to two bytes.
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, i)
 	rdr := bufio.NewReader(bytes.NewReader(buf))
 	// Get the value via testing!
 	keepAlive, err := getKeepAlive(rdr)
-	if err != nil && shouldPass {
+	if err != nil {
 		t.Fatalf("getKeepAlive failed: %v", err.Error())
-	} else if err == nil && !shouldPass {
-		t.Fatalf("getKeepAlive should have failed: %v", keepAlive)
 	} else if keepAlive != expected {
 		t.Fatalf("Got:\n%v\nExpected:\n%v", keepAlive, expected)
 	}
 }
 func TestGetKeepAlive(t *testing.T) {
 	var val uint16 = 4
-	checkKeepAlive(t, val, val, true)
+	checkKeepAlive(t, val, val)
 	val = 65535
-	checkKeepAlive(t, val, val, true)
+	checkKeepAlive(t, val, val)
 	val = 0
-	checkKeepAlive(t, val, val, true)
+	checkKeepAlive(t, val, val)
+}
+
+func checkDecodeVarByteInt(t *testing.T, buf []byte, expected uint32, shouldPass bool) {
+	// Convert the int to two bytes.
+	rdr := bufio.NewReader(bytes.NewReader(buf))
+	// Get the value via testing!
+	val, err := decodeVarByteInt(rdr)
+	if err != nil && shouldPass {
+		t.Fatalf("decodeVarByteInt failed: %v", err.Error())
+	} else if err == nil && !shouldPass {
+		t.Fatalf("decodeVarByteInt should have failed: %v", val)
+	} else if val != expected && shouldPass {
+		t.Fatalf("Got:\n%v\nExpected:\n%v", val, expected)
+	}
+}
+func TestDecodeVarByteInt(t *testing.T) {
+	buf := []byte{0xFF, 0x64}
+	var expected uint32 = 12927
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0x76}
+	expected = 118
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0x7F}
+	expected = 127
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0x80, 0x01}
+	expected = 128
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0x00}
+	expected = 0
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0x80, 0x80, 0x01}
+	expected = 16384
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0xFF, 0xFF, 0x7F}
+	expected = 2097151
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0x80, 0x80, 0x80, 0x01}
+	expected = 2097152
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0xFF, 0xFF, 0xFF, 0x7F}
+	expected = 268435455
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0xFF, 0xFF, 0xFF, 0x7F, 0x01}
+	expected = 268435455
+	checkDecodeVarByteInt(t, buf, expected, true)
+	buf = []byte{0xFF, 0xFF, 0xFF, 0xFF, 0x01}
+	expected = 268435456
+	checkDecodeVarByteInt(t, buf, expected, false)
 }

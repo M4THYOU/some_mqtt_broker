@@ -55,6 +55,9 @@ func (client *Client) handleConnect(remainingLength uint64) error {
 
 	// And now for the properties!
 	// TODO
+	// To get prop length, read bytes until we get one of the prop identifiers.
+	// If the first byte is 0x00, then there are no props so skip this.
+	// propLength := getPropertyLength(client.Rdr)
 
 	return nil
 }
