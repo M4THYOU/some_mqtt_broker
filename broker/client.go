@@ -2,7 +2,6 @@ package broker
 
 import (
 	"bufio"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"log"
@@ -16,7 +15,7 @@ type Client struct {
 	KeepAlive    uint16
 }
 
-func (client *Client) handleConnect(remainingLength uint64) error {
+func (client *Client) handleConnect(remainingLength uint32) error {
 	fmt.Println("Handle Connect")
 
 	// verify the protocol is set to 'MQTT'
@@ -61,78 +60,78 @@ func (client *Client) handleConnect(remainingLength uint64) error {
 
 	return nil
 }
-func (client *Client) handleConnack(remainingLength uint64) error {
+func (client *Client) handleConnack(remainingLength uint32) error {
 	fmt.Println("Handle Connack")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handlePublish(remainingLength uint64) error {
+func (client *Client) handlePublish(remainingLength uint32) error {
 	fmt.Println("Handle Publish")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handlePuback(remainingLength uint64) error {
+func (client *Client) handlePuback(remainingLength uint32) error {
 	fmt.Println("Handle Puback")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handlePubrec(remainingLength uint64) error {
+func (client *Client) handlePubrec(remainingLength uint32) error {
 	fmt.Println("Handle Pubrec")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handlePubrel(remainingLength uint64) error {
+func (client *Client) handlePubrel(remainingLength uint32) error {
 	fmt.Println("Handle Pubrel")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handlePubcomp(remainingLength uint64) error {
+func (client *Client) handlePubcomp(remainingLength uint32) error {
 	fmt.Println("Handle Pubcomp")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handleSubscribe(remainingLength uint64) error {
+func (client *Client) handleSubscribe(remainingLength uint32) error {
 	fmt.Println("Handle Subscribe")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handleSuback(remainingLength uint64) error {
+func (client *Client) handleSuback(remainingLength uint32) error {
 	fmt.Println("Handle Suback")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handleUnsubscribe(remainingLength uint64) error {
+func (client *Client) handleUnsubscribe(remainingLength uint32) error {
 	fmt.Println("Handle Unsubscribe")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handleUnsuback(remainingLength uint64) error {
+func (client *Client) handleUnsuback(remainingLength uint32) error {
 	fmt.Println("Handle Unsuback")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handlePingreq(remainingLength uint64) error {
+func (client *Client) handlePingreq(remainingLength uint32) error {
 	fmt.Println("Handle Pingreq")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handlePingresp(remainingLength uint64) error {
+func (client *Client) handlePingresp(remainingLength uint32) error {
 	fmt.Println("Handle Pingresp")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handleDisconnect(remainingLength uint64) error {
+func (client *Client) handleDisconnect(remainingLength uint32) error {
 	fmt.Println("Handle Disconnect")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func (client *Client) handleAuth(remainingLength uint64) error {
+func (client *Client) handleAuth(remainingLength uint32) error {
 	fmt.Println("Handle Auth")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
 
-func (client *Client) processFixedHeader() (byte, uint64, error) {
+func (client *Client) processFixedHeader() (byte, uint32, error) {
 	fmt.Println("Fixed header:")
 	b1, err := client.Rdr.ReadByte()
 	if err != nil {
@@ -146,32 +145,15 @@ func (client *Client) processFixedHeader() (byte, uint64, error) {
 		log.Fatalln("Not yet implemented.")
 	}
 
-	// Read all the bytes until 0x00 byte. This means it's about to write what protocol it is.
-	bSlice := make([]byte, 0)
-	b, err := client.Rdr.ReadByte()
+	remainingLength, err := decodeVarByteInt(client.Rdr)
 	if err != nil {
 		return 0x00, 0, err
-	}
-	for b != 0x00 {
-		bSlice = append(bSlice, b)
-		b, err = client.Rdr.ReadByte()
-		if err != nil {
-			return 0x00, 0, err
-		}
-	}
-	remainingLength, n := binary.Uvarint(bSlice)
-	if n == 0 {
-		msg := fmt.Sprintf("Empty bSlice: %v\n", bSlice)
-		return 0x00, 0, errors.New(msg)
-	} else if n < 0 {
-		msg := fmt.Sprintf("Overflow on: %v\n", bSlice)
-		return 0x00, 0, errors.New(msg)
 	}
 
 	return reqType, remainingLength, nil
 }
 
-func (client *Client) processVarHeader(reqType byte, remainingLength uint64) (err error) {
+func (client *Client) processVarHeader(reqType byte, remainingLength uint32) (err error) {
 	fmt.Println("The rest:")
 
 	switch reqType {

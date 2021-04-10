@@ -117,6 +117,10 @@ func getRequestType(b byte) byte {
 }
 
 func verifyProtocol(rdr *bufio.Reader) error {
+	msb, err := rdr.ReadByte()
+	if err != nil {
+		return err
+	}
 	lsb, err := rdr.ReadByte() // should be 00000100, i.e. 4
 	if err != nil {
 		return err
@@ -137,7 +141,7 @@ func verifyProtocol(rdr *bufio.Reader) error {
 	if err != nil {
 		return err
 	}
-	if lsb != 0x04 || m != 'M' || q != 'Q' || t1 != 'T' || t2 != 'T' {
+	if msb != 0x00 || lsb != 0x04 || m != 'M' || q != 'Q' || t1 != 'T' || t2 != 'T' {
 		msg := fmt.Sprintf("Got invalid protocol:\n%08b\n%08b\n%08b\n%08b\n%08b\n\nExpected:\n%08b\n%08b\n%08b\n%08b\n%08b", lsb, m, q, t1, t2, 0x04, 'M', 'Q', 'T', 'T')
 		return errors.New(msg)
 	}

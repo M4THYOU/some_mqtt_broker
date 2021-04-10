@@ -172,20 +172,21 @@ func checkSliceProtocol(t *testing.T, buf []byte, shouldPass bool) {
 }
 
 func TestVerifyProtocol(t *testing.T) {
-	// TODO MORE TESTS! make sure it works. Try bad examples.
-	buf := []byte{4, 'M', 'Q', 'T', 'T'}
+	buf := []byte{0, 4, 'M', 'Q', 'T', 'T'}
 	checkSliceProtocol(t, buf, true)
-	buf = []byte{4, 'M', 'Q', 'T', 'T', 'T', 'T', 0x2d}
+	buf = []byte{0, 4, 'M', 'Q', 'T', 'T', 'T', 'T', 0x2d}
 	checkSliceProtocol(t, buf, true)
-	buf = []byte{4, 'm', 'Q', 'T', 'T'}
+	buf = []byte{0, 4, 'm', 'Q', 'T', 'T'}
 	checkSliceProtocol(t, buf, false)
-	buf = []byte{5, 'M', 'Q', 'T', 'T', 'T'}
+	buf = []byte{0, 5, 'M', 'Q', 'T', 'T', 'T'}
 	checkSliceProtocol(t, buf, false)
-	buf = []byte{4, 'm', 'q', 't', 't'}
+	buf = []byte{0, 4, 'm', 'q', 't', 't'}
 	checkSliceProtocol(t, buf, false)
-	buf = []byte{1, 'M', 'Q', 'T', 'T'}
+	buf = []byte{0, 1, 'M', 'Q', 'T', 'T'}
 	checkSliceProtocol(t, buf, false)
-	buf = []byte{0, 4, 'M', 'Q', 'T', 'T'} // expects first byte to be LSB of the protocol. SHOULD BE 4!
+	buf = []byte{0, 0, 4, 'M', 'Q', 'T', 'T'} // expects first byte to be LSB of the protocol. SHOULD BE 4!
+	checkSliceProtocol(t, buf, false)
+	buf = []byte{1, 4, 'M', 'Q', 'T', 'T'}
 	checkSliceProtocol(t, buf, false)
 }
 
