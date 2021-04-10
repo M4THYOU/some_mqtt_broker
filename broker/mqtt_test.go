@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 var _ = fmt.Printf // For debugging; delete when done.
@@ -41,11 +43,11 @@ const (
 	authFirstByte        = byte(240) // 11110000
 )
 
-func printRawBuffer(buf []byte, len int) {
-	for i := 0; i < len; i++ {
-		fmt.Printf("%d: %08b\n", i, buf[i])
-	}
-}
+// func printRawBuffer(buf []byte, len int) {
+// 	for i := 0; i < len; i++ {
+// 		fmt.Printf("%d: %08b\n", i, buf[i])
+// 	}
+// }
 
 func TestGetRequestType(t *testing.T) {
 	b := getRequestType(connectFirstByte)
@@ -158,30 +160,63 @@ func TestGetRequestType(t *testing.T) {
 	}
 }
 
-func checkSliceProtocol(buf []byte, t *testing.T, shouldPass bool) {
+func checkSliceProtocol(t *testing.T, buf []byte, shouldPass bool) {
 	rdr := bufio.NewReader(bytes.NewReader(buf))
 	err := verifyProtocol(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("Invalid protocol: %v", err.Error())
 	} else if err == nil && !shouldPass {
-		t.Fatalf("Should have been an invalid protocol: %v", err.Error())
+		t.Fatalf("Should have been an invalid protocol: %v", buf)
 	}
 }
 
 func TestVerifyProtocol(t *testing.T) {
 	// TODO MORE TESTS! make sure it works. Try bad examples.
 	buf := []byte{4, 'M', 'Q', 'T', 'T'}
-	checkSliceProtocol(buf, t, true)
+	checkSliceProtocol(t, buf, true)
 	buf = []byte{4, 'M', 'Q', 'T', 'T', 'T', 'T', 0x2d}
-	checkSliceProtocol(buf, t, true)
+	checkSliceProtocol(t, buf, true)
 	buf = []byte{4, 'm', 'Q', 'T', 'T'}
-	checkSliceProtocol(buf, t, false)
+	checkSliceProtocol(t, buf, false)
 	buf = []byte{5, 'M', 'Q', 'T', 'T', 'T'}
-	checkSliceProtocol(buf, t, false)
+	checkSliceProtocol(t, buf, false)
 	buf = []byte{4, 'm', 'q', 't', 't'}
-	checkSliceProtocol(buf, t, false)
+	checkSliceProtocol(t, buf, false)
 	buf = []byte{1, 'M', 'Q', 'T', 'T'}
-	checkSliceProtocol(buf, t, false)
+	checkSliceProtocol(t, buf, false)
 	buf = []byte{0, 4, 'M', 'Q', 'T', 'T'} // expects first byte to be LSB of the protocol. SHOULD BE 4!
-	checkSliceProtocol(buf, t, false)
+	checkSliceProtocol(t, buf, false)
+}
+
+func checkConnectFlags(t *testing.T, b byte, expected *ConnectFlags, shouldPass bool) {
+	flags, err := getConnectFlags(b)
+	if err != nil && shouldPass {
+		t.Fatalf("Invalid flags byte: %v", err.Error())
+	} else if err == nil && !shouldPass {
+		t.Fatalf("Should have been an invalid flags byte: %08b", b)
+	} else if !cmp.Equal(flags, expected) && shouldPass {
+		t.Fatalf("Got:\n%v\nExpected:\n%v", flags, expected)
+	}
+}
+func TestGetConnectFlags(t *testing.T) {
+	// Other rules:
+	// If Will Flag == 0, Will QoS must be 0. Otherwise, Will QoS can be 0, 1, or 2
+	// If Will Flag == 0, Will Retain must be 0. Otherwise, can be 0 or 1.
+
+	// VALID
+	checkConnectFlags(t, 0, &ConnectFlags{false, false, false, 0, false, false}, true) // 00000000: pass
+	checkConnectFlags(t, 130, &ConnectFlags{true, false, false, 0, false, true}, true) // 10000010: pass
+	checkConnectFlags(t, 134, &ConnectFlags{true, false, false, 0, true, true}, true)  // 10000110: pass
+	checkConnectFlags(t, 70, &ConnectFlags{false, true, false, 0, true, true}, true)   // 01000110: pass
+	checkConnectFlags(t, 44, &ConnectFlags{false, false, true, 1, true, false}, true)  // 00101100: pass
+	checkConnectFlags(t, 52, &ConnectFlags{false, false, true, 2, true, false}, true)  // 00110100: pass
+	checkConnectFlags(t, 214, &ConnectFlags{true, true, false, 2, true, true}, true)   // 11010110: pass
+	// ERROR
+	checkConnectFlags(t, 255, &ConnectFlags{true, true, true, 3, true, true}, false)    // 11111111: fail => invalid QoS && reserved bit is 1
+	checkConnectFlags(t, 112, &ConnectFlags{false, true, true, 2, false, false}, false) // 01110000: fail => will flag is zero!
+	checkConnectFlags(t, 120, &ConnectFlags{false, true, true, 3, false, false}, false) // 01111000: fail => invalid QoS && will flag is zero!
+	checkConnectFlags(t, 124, &ConnectFlags{false, true, true, 3, true, false}, false)  // 01111100: fail => invalid QoS
+	checkConnectFlags(t, 125, &ConnectFlags{false, true, true, 3, true, false}, false)  // 01111101: fail => invalid QoS && reserved bit is 1
+	checkConnectFlags(t, 253, &ConnectFlags{true, true, true, 3, true, false}, false)   // 11111101: fail => invalid QoS && reserved bit is 1
+	checkConnectFlags(t, 1, &ConnectFlags{false, false, false, 0, false, false}, false) // 00000001: fail => reserved bit is 1
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 
 	"github.com/M4THYOU/some_mqtt_broker/utils"
 )
@@ -30,13 +31,17 @@ const (
 	authCode        = 0x0F
 )
 
+type Client struct {
+	Conn         net.Conn
+	Rdr          *bufio.Reader
+	connectFlags ConnectFlags
+}
+
 // Define all the packet structs.
 type Connect struct {
 	// Variable Header
-	ProtocolName    utils.Utf8Str // UTF-8 encoded string, must be 'MQTT'
-	ProtocolVersion utils.OneByteInt
-	Flags           ConnectFlags
-	KeepAlive       utils.TwoByteInt
+	Flags     ConnectFlags
+	KeepAlive utils.TwoByteInt
 	// Properties (Still in Variable Header)
 	PropertyLength             utils.VariableByteInt
 	SessionExpiryInterval      utils.FourByteInt
@@ -50,12 +55,12 @@ type Connect struct {
 	AuthData                   utils.BinaryData
 }
 type ConnectFlags struct {
-	CleanStart   bool
-	WillFlag     bool
-	WillQos      uint8 // consisting only of 2 bits. Valid values are 0, 1, 2. Not 3!
-	WillRetain   bool
-	PasswordFlag bool
 	UserNameFlag bool
+	PasswordFlag bool
+	WillRetain   bool
+	WillQos      uint8 // consisting only of 2 bits. Valid values are 0, 1, 2. Not 3!
+	WillFlag     bool
+	CleanStart   bool
 }
 type Connack struct{}
 type Publish struct{}
@@ -72,76 +77,123 @@ type Pingresp struct{}
 type Disconnect struct{}
 type Auth struct{}
 
-func handleConnect(rdr *bufio.Reader, remainingLength uint64) error {
+func getConnectFlags(b byte) (*ConnectFlags, error) {
+	userNameFlag := ((b & 0x80) >> 7) == 1
+	passwordFlag := ((b & 0x40) >> 6) == 1
+	willRetain := ((b & 0x20) >> 5) == 1
+	willQoS := ((b & 0x18) >> 3)
+	willFlag := ((b & 0x04) >> 2) == 1
+	cleanStart := ((b & 0x02) >> 1) == 1
+	reserved := (b & 0x01) == 1
+	if reserved {
+		return nil, errors.New("invalid reserved bit")
+	} else if willQoS > 2 {
+		return nil, errors.New("invalid QoS")
+	} else if !willFlag && (willRetain || (willQoS > 0)) {
+		msg := fmt.Sprintf("Will Flag is: %t but Will Retain is %t and Will QoS is %d", willFlag, willRetain, willQoS)
+		return nil, errors.New(msg)
+	}
+	flags := &ConnectFlags{userNameFlag, passwordFlag, willRetain, willQoS, willFlag, cleanStart}
+	return flags, nil
+}
+
+func (client *Client) handleConnect(remainingLength uint64) error {
 	fmt.Println("Handle Connect")
+
+	// verify the protocol is set to 'MQTT'
+	err := verifyProtocol(client.Rdr)
+	if err != nil {
+		return err
+	}
+
+	// Check protocol version. Currently only supports v5.0
+	b, err := client.Rdr.ReadByte()
+	if err != nil {
+		return err
+	} else if b != 5 {
+		msg := fmt.Sprintf("This broker currently only supports MQTT v5.0. You specified: %d", b)
+		return errors.New(msg)
+	}
+
+	// Check the connect flags!
+	b, err = client.Rdr.ReadByte()
+	if err != nil {
+		return err
+	}
+	flags, err := getConnectFlags(b)
+	if err != nil {
+		return err
+	}
+	fmt.Println(flags)
+
 	return nil
 }
-func handleConnack(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handleConnack(remainingLength uint64) error {
 	fmt.Println("Handle Connack")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handlePublish(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handlePublish(remainingLength uint64) error {
 	fmt.Println("Handle Publish")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handlePuback(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handlePuback(remainingLength uint64) error {
 	fmt.Println("Handle Puback")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handlePubrec(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handlePubrec(remainingLength uint64) error {
 	fmt.Println("Handle Pubrec")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handlePubrel(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handlePubrel(remainingLength uint64) error {
 	fmt.Println("Handle Pubrel")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handlePubcomp(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handlePubcomp(remainingLength uint64) error {
 	fmt.Println("Handle Pubcomp")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handleSubscribe(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handleSubscribe(remainingLength uint64) error {
 	fmt.Println("Handle Subscribe")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handleSuback(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handleSuback(remainingLength uint64) error {
 	fmt.Println("Handle Suback")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handleUnsubscribe(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handleUnsubscribe(remainingLength uint64) error {
 	fmt.Println("Handle Unsubscribe")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handleUnsuback(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handleUnsuback(remainingLength uint64) error {
 	fmt.Println("Handle Unsuback")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handlePingreq(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handlePingreq(remainingLength uint64) error {
 	fmt.Println("Handle Pingreq")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handlePingresp(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handlePingresp(remainingLength uint64) error {
 	fmt.Println("Handle Pingresp")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handleDisconnect(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handleDisconnect(remainingLength uint64) error {
 	fmt.Println("Handle Disconnect")
 	log.Fatalln("Not yet implemented.")
 	return nil
 }
-func handleAuth(rdr *bufio.Reader, remainingLength uint64) error {
+func (client *Client) handleAuth(remainingLength uint64) error {
 	fmt.Println("Handle Auth")
 	log.Fatalln("Not yet implemented.")
 	return nil
@@ -151,9 +203,9 @@ func getRequestType(b byte) byte {
 	return (b & 0xF0) >> 4
 }
 
-func processFixedHeader(rdr *bufio.Reader) (byte, uint64, error) {
+func (client *Client) processFixedHeader() (byte, uint64, error) {
 	fmt.Println("Fixed header:")
-	b1, err := rdr.ReadByte()
+	b1, err := client.Rdr.ReadByte()
 	if err != nil {
 		return 0x00, 0, err
 	}
@@ -167,13 +219,13 @@ func processFixedHeader(rdr *bufio.Reader) (byte, uint64, error) {
 
 	// Read all the bytes until 0x00 byte. This means it's about to write what protocol it is.
 	bSlice := make([]byte, 0)
-	b, err := rdr.ReadByte()
+	b, err := client.Rdr.ReadByte()
 	if err != nil {
 		return 0x00, 0, err
 	}
 	for b != 0x00 {
 		bSlice = append(bSlice, b)
-		b, err = rdr.ReadByte()
+		b, err = client.Rdr.ReadByte()
 		if err != nil {
 			return 0x00, 0, err
 		}
@@ -218,58 +270,52 @@ func verifyProtocol(rdr *bufio.Reader) error {
 	return nil
 }
 
-func processVarHeader(rdr *bufio.Reader, reqType byte, remainingLength uint64) error {
+func (client *Client) processVarHeader(reqType byte, remainingLength uint64) (err error) {
 	fmt.Println("The rest:")
-
-	// TODO: verify the protocol is set to 'MQTT'
-	err := verifyProtocol(rdr)
-	if err != nil {
-		return err
-	}
 
 	switch reqType {
 	case connectCode:
-		err = handleConnect(rdr, remainingLength)
+		err = client.handleConnect(remainingLength)
 	case connackCode:
-		err = handleConnack(rdr, remainingLength)
+		err = client.handleConnack(remainingLength)
 	case publishCode:
-		err = handlePublish(rdr, remainingLength)
+		err = client.handlePublish(remainingLength)
 	case pubackCode:
-		err = handlePuback(rdr, remainingLength)
+		err = client.handlePuback(remainingLength)
 	case pubrecCode:
-		err = handlePubrec(rdr, remainingLength)
+		err = client.handlePubrec(remainingLength)
 	case pubrelCode:
-		err = handlePubrel(rdr, remainingLength)
+		err = client.handlePubrel(remainingLength)
 	case pubcompCode:
-		err = handlePubcomp(rdr, remainingLength)
+		err = client.handlePubcomp(remainingLength)
 	case subscribeCode:
-		err = handleSubscribe(rdr, remainingLength)
+		err = client.handleSubscribe(remainingLength)
 	case subackCode:
-		err = handleSuback(rdr, remainingLength)
+		err = client.handleSuback(remainingLength)
 	case unsubscribeCode:
-		err = handleUnsubscribe(rdr, remainingLength)
+		err = client.handleUnsubscribe(remainingLength)
 	case unsubackCode:
-		err = handleUnsuback(rdr, remainingLength)
+		err = client.handleUnsuback(remainingLength)
 	case pingreqCode:
-		err = handlePingreq(rdr, remainingLength)
+		err = client.handlePingreq(remainingLength)
 	case pingrespCode:
-		err = handlePingresp(rdr, remainingLength)
+		err = client.handlePingresp(remainingLength)
 	case disconnectCode:
-		err = handleDisconnect(rdr, remainingLength)
+		err = client.handleDisconnect(remainingLength)
 	case authCode:
-		err = handleAuth(rdr, remainingLength)
+		err = client.handleAuth(remainingLength)
 	}
 	return err
 
 }
 
-func ProcessPacket(rdr *bufio.Reader) error {
+func (client *Client) ProcessPacket() error {
 	// process the fixed header.
-	reqType, remLen, err := processFixedHeader(rdr) // make this guy return remaining length!
+	reqType, remLen, err := client.processFixedHeader() // make this guy return remaining length!
 	if err != nil {
 		return err
 	}
 	// check the protocol is correct then run the switch statement currently in processFixedHeader
-	err = processVarHeader(rdr, reqType, remLen)
+	err = client.processVarHeader(reqType, remLen)
 	return err
 }
