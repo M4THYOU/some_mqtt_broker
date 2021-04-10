@@ -12,7 +12,8 @@ import (
 type Client struct {
 	Conn         net.Conn
 	Rdr          *bufio.Reader
-	connectFlags ConnectFlags
+	connectFlags *ConnectFlags
+	KeepAlive    uint16
 }
 
 func (client *Client) handleConnect(remainingLength uint64) error {
@@ -42,7 +43,18 @@ func (client *Client) handleConnect(remainingLength uint64) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(flags)
+	client.connectFlags = flags
+
+	keepAlive, err := getKeepAlive(client.Rdr)
+	if err != nil {
+		return err
+	}
+	client.KeepAlive = keepAlive
+
+	fmt.Println(client)
+
+	// And now for the properties!
+	// TODO
 
 	return nil
 }

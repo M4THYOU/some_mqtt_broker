@@ -2,6 +2,7 @@ package broker
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -118,4 +119,18 @@ func verifyProtocol(rdr *bufio.Reader) error {
 		return errors.New(msg)
 	}
 	return nil
+}
+
+func getKeepAlive(rdr *bufio.Reader) (uint16, error) {
+	// Read 2 bytes and turn it to an integer
+	buf := make([]byte, 0)
+	for i := 0; i < 2; i++ {
+		b, err := rdr.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		buf = append(buf, b)
+	}
+	keepAlive := binary.BigEndian.Uint16(buf)
+	return keepAlive, nil
 }

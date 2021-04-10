@@ -3,6 +3,7 @@ package broker
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"testing"
 
@@ -219,4 +220,28 @@ func TestGetConnectFlags(t *testing.T) {
 	checkConnectFlags(t, 125, &ConnectFlags{false, true, true, 3, true, false}, false)  // 01111101: fail => invalid QoS && reserved bit is 1
 	checkConnectFlags(t, 253, &ConnectFlags{true, true, true, 3, true, false}, false)   // 11111101: fail => invalid QoS && reserved bit is 1
 	checkConnectFlags(t, 1, &ConnectFlags{false, false, false, 0, false, false}, false) // 00000001: fail => reserved bit is 1
+}
+
+func checkKeepAlive(t *testing.T, i, expected uint16, shouldPass bool) {
+	// Convert the int to two bytes.
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, i)
+	rdr := bufio.NewReader(bytes.NewReader(buf))
+	// Get the value via testing!
+	keepAlive, err := getKeepAlive(rdr)
+	if err != nil && shouldPass {
+		t.Fatalf("getKeepAlive failed: %v", err.Error())
+	} else if err == nil && !shouldPass {
+		t.Fatalf("getKeepAlive should have failed: %v", keepAlive)
+	} else if keepAlive != expected {
+		t.Fatalf("Got:\n%v\nExpected:\n%v", keepAlive, expected)
+	}
+}
+func TestGetKeepAlive(t *testing.T) {
+	var val uint16 = 4
+	checkKeepAlive(t, val, val, true)
+	val = 65535
+	checkKeepAlive(t, val, val, true)
+	val = 0
+	checkKeepAlive(t, val, val, true)
 }
