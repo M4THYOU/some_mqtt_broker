@@ -363,6 +363,31 @@ func TestGetStringPairProp(t *testing.T) {
 	checkStringPairProp(t, buf, expected, expectedRead, true)
 }
 
+func checkClientId(t *testing.T, buf []byte, expected string, shouldPass bool) {
+	rdr := bufio.NewReader(bytes.NewReader(buf))
+	clientId, err := getClientId(rdr)
+	if err != nil && shouldPass {
+		t.Fatalf("getClientId failed: %v", err.Error())
+	} else if err == nil && !shouldPass {
+		t.Fatalf("getClientId should have failed: %v", buf)
+	} else if clientId != expected && shouldPass {
+		t.Fatalf("Got:\n%v\nExpected:\n%v", clientId, expected)
+	}
+}
+func TestGetClientId(t *testing.T) {
+	buf := []byte{0x00, 0x00}
+	expected := "one randomly"
+	checkClientId(t, buf, expected, true)
+	buf = []byte{0x00, 0x01, 0x32}
+	expected = "2"
+	checkClientId(t, buf, expected, true)
+	buf = []byte{0x00, 0x02, 0x32, 0x61}
+	expected = "2a"
+	checkClientId(t, buf, expected, true)
+	buf = []byte{0x00}
+	checkClientId(t, buf, expected, false)
+}
+
 // Below are all the tests for the getProps function. They are split into 15 different functions, 1 for each packet type.
 // Each one tests on every property identifier at least once, plus some extra cases that may be unique to that packet.
 var (

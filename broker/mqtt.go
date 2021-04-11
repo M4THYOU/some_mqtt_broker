@@ -69,6 +69,36 @@ type Pingresp struct{}
 type Disconnect struct{}
 type Auth struct{}
 
+// getClientId gets the client ID from the next available bytes in the reader.
+// If length is 0, assigns one randomly.
+func getClientId(rdr *bufio.Reader) (string, error) {
+	msb, err := rdr.ReadByte()
+	if err != nil {
+		return "", err
+	}
+	lsb, err := rdr.ReadByte()
+	if err != nil {
+		return "", err
+	}
+	len := int(binary.BigEndian.Uint16([]byte{msb, lsb}))
+	if len == 0 {
+		// TODO implement some auto assigning clientId method.
+		return "one randomly", nil // LOL
+	}
+	fmt.Println(len)
+	s := make([]byte, 0)
+	for i := 0; i < len; i++ {
+		b, err := rdr.ReadByte()
+		if err != nil {
+			return "", err
+		}
+		s = append(s, b)
+	}
+	fmt.Println(s)
+	fmt.Println(string(s[:]))
+	return string(s), nil
+}
+
 // getStringPropParams should only be called by getProps. Note that this function also works for Binary Data.
 // Returns the number of bytes to be read, the new total of bytes read, and possibly an error.
 func getStringPropParams(i int, rdr *bufio.Reader) (count, newI int, err error) {

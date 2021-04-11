@@ -66,12 +66,20 @@ func (client *Client) handleConnect(remainingLength uint32) error {
 	if err != nil {
 		return err
 	}
+	// TODO
+	// Do things with these props. Use a default value if not found.
+	// Put them all in a map, then assign
 	fmt.Println(props)
 	fmt.Println(userProps)
 
-	// TODO
-	// Set all the props. Use a defualt value if not found.
-	// Put them all in a map, then assign
+	// Process the payload.
+	// first thing is a utf8 encoded string for the clientId.
+	// If zero length, assign one from the server.
+	clientId, err := getClientId(client.Rdr)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Client ID: %v\n", clientId)
 
 	return nil
 }
