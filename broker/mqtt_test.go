@@ -472,4 +472,6 @@ func TestGetPropsCONNECT(t *testing.T) {
 	expected = map[int][]byte{0x15: authenticationMethod[3:], 0x16: authenticationData[3:], 0x11: sessionExpiryInterval[1:]}
 	expectedUProps = [][]byte{userProperty[1:], userProperty2[1:]}
 	checkProps(t, 40, packetCode, payload, expected, expectedUProps, true)
+	// Empty props
+	checkProps(t, 0, packetCode, []byte{}, map[int][]byte{}, [][]byte{}, true)
 }

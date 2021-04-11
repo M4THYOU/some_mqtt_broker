@@ -62,6 +62,13 @@ func (client *Client) handleConnect(remainingLength uint32) error {
 	}
 	fmt.Println(propLength)
 
+	props, userProps, err := getProps(client.Rdr, int(propLength), connectCode)
+	if err != nil {
+		return err
+	}
+	fmt.Println(props)
+	fmt.Println(userProps)
+
 	// TODO
 	// Set all the props. Use a defualt value if not found.
 	// Put them all in a map, then assign
