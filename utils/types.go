@@ -1,12 +1,10 @@
 package utils
 
-type Utf8Str = []byte
-type Utf8StrPair = Utf8Str
-type VariableByteInt = []uint8
-type OneByteInt = uint8
-type TwoByteInt = uint16
-type FourByteInt = uint32
+type Utf8StringPair struct {
+	name  []byte // up to 65,535 bytes.
+	value []byte // up to 65,535 bytes.
+}
 type BinaryData struct {
-	length TwoByteInt
-	data   []byte // of the specified length.
+	length int16
+	data   []byte
 }

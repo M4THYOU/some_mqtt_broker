@@ -245,51 +245,231 @@ func TestGetKeepAlive(t *testing.T) {
 	checkKeepAlive(t, val, val)
 }
 
-func checkDecodeVarByteInt(t *testing.T, buf []byte, expected uint32, shouldPass bool) {
+func checkDecodeVarByteInt(t *testing.T, buf []byte, expectedByteCount int, expected uint32, shouldPass bool) {
 	// Convert the int to two bytes.
 	rdr := bufio.NewReader(bytes.NewReader(buf))
 	// Get the value via testing!
-	val, err := decodeVarByteInt(rdr)
+	i, val, err := decodeVarByteInt(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("decodeVarByteInt failed: %v", err.Error())
 	} else if err == nil && !shouldPass {
 		t.Fatalf("decodeVarByteInt should have failed: %v", val)
 	} else if val != expected && shouldPass {
 		t.Fatalf("Got:\n%v\nExpected:\n%v", val, expected)
+	} else if i != expectedByteCount && shouldPass {
+		t.Fatalf("read %d bytes, expected %d", i, expectedByteCount)
 	}
 }
 func TestDecodeVarByteInt(t *testing.T) {
 	buf := []byte{0xFF, 0x64}
 	var expected uint32 = 12927
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 2, expected, true)
 	buf = []byte{0x76}
 	expected = 118
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 1, expected, true)
 	buf = []byte{0x7F}
 	expected = 127
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 1, expected, true)
 	buf = []byte{0x80, 0x01}
 	expected = 128
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 2, expected, true)
 	buf = []byte{0x00}
 	expected = 0
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 1, expected, true)
 	buf = []byte{0x80, 0x80, 0x01}
 	expected = 16384
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 3, expected, true)
 	buf = []byte{0xFF, 0xFF, 0x7F}
 	expected = 2097151
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 3, expected, true)
 	buf = []byte{0x80, 0x80, 0x80, 0x01}
 	expected = 2097152
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 4, expected, true)
 	buf = []byte{0xFF, 0xFF, 0xFF, 0x7F}
 	expected = 268435455
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 4, expected, true)
 	buf = []byte{0xFF, 0xFF, 0xFF, 0x7F, 0x01}
 	expected = 268435455
-	checkDecodeVarByteInt(t, buf, expected, true)
+	checkDecodeVarByteInt(t, buf, 4, expected, true)
 	buf = []byte{0xFF, 0xFF, 0xFF, 0xFF, 0x01}
 	expected = 268435456
-	checkDecodeVarByteInt(t, buf, expected, false)
+	checkDecodeVarByteInt(t, buf, 5, expected, false)
+}
+
+func checkStringPropParams(t *testing.T, i int, buf []byte, expectedCount int, shouldPass bool) {
+	expectedI := i + 2 // since the function reads 2 bytes, the newI should be 2 greater than i.
+	rdr := bufio.NewReader(bytes.NewReader(buf))
+	count, newI, err := getStringPropParams(i, rdr)
+	if err != nil && shouldPass {
+		t.Fatalf("getStringPropParams failed: %v", err.Error())
+	} else if err == nil && !shouldPass {
+		t.Fatalf("getStringPropParams should have failed: %v", buf)
+	} else if newI != expectedI && shouldPass {
+		t.Fatalf("incorrect i. Got:\n%v\nExpected:\n%v", newI, expectedI)
+	} else if count != expectedCount && shouldPass {
+		t.Fatalf("incorrect count. Got:\n%v\nExpected:\n%v", count, expectedCount)
+	}
+}
+func TestGetStringPropParams(t *testing.T) {
+	example := []byte{0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94}
+	expectedCount := 5
+	checkStringPropParams(t, 99, example, expectedCount, true)
+	checkStringPropParams(t, 2, example, expectedCount, true)
+	example = []byte{0x00, 0x04, 0x41, 0xF0, 0xAA, 0x9B, 0x94}
+	expectedCount = 4
+	checkStringPropParams(t, 13, example, expectedCount, true)
+	example = []byte{0x00, 0x00}
+	expectedCount = 0
+	checkStringPropParams(t, 7, example, expectedCount, true)
+	example = []byte{0x00}
+	checkStringPropParams(t, 7, example, expectedCount, false)
+	example = []byte{0x05}
+	checkStringPropParams(t, 7, example, expectedCount, false)
+}
+
+func checkStringPairProp(t *testing.T, buf, expected []byte, expectedRead int, shouldPass bool) {
+	rdr := bufio.NewReader(bytes.NewReader(buf))
+	numRead, res, err := getStringPairProp(rdr)
+	if err != nil && shouldPass {
+		t.Fatalf("getStringPropParams failed: %v", err.Error())
+	} else if err == nil && !shouldPass {
+		t.Fatalf("getStringPropParams should have failed: %v", buf)
+	} else if !cmp.Equal(res, expected) && shouldPass {
+		t.Fatalf("Got:\n%v\nExpected:\n%v", res, expected)
+	} else if numRead != expectedRead && shouldPass {
+		t.Fatalf("incorrect numRead. Got:\n%v\nExpected:\n%v", numRead, expectedRead)
+	}
+}
+func TestGetStringPairProp(t *testing.T) {
+	buf := []byte{0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94, 0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94}
+	expected := buf
+	expectedRead := 14
+	checkStringPairProp(t, buf, expected, expectedRead, true)
+	buf = []byte{0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94}
+	checkStringPairProp(t, buf, expected, expectedRead, false)
+	buf = []byte{0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94, 0x00, 0x05}
+	checkStringPairProp(t, buf, expected, expectedRead, false)
+	buf = []byte{0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94, 0x00}
+	checkStringPairProp(t, buf, expected, expectedRead, false)
+	buf = []byte{0x00, 0x04, 0xF0, 0xAA, 0x9B, 0x94, 0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94, 0x05}
+	expected = []byte{0x00, 0x04, 0xF0, 0xAA, 0x9B, 0x94, 0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94}
+	expectedRead = 13
+	checkStringPairProp(t, buf, expected, expectedRead, true)
+	buf = []byte{0xF0, 0x00, 0x04, 0xF0, 0xAA, 0x9B, 0x94, 0x00, 0x05, 0x41, 0xF0, 0xAA, 0x9B, 0x94, 0x05}
+	checkStringPairProp(t, buf, expected, expectedRead, false)
+	buf = []byte{0x00, 0x02, 0xF0, 0xF0, 0x00, 0x00, 0x41, 0xF0, 0xAA, 0x9B, 0x94, 0x05}
+	expected = []byte{0x00, 0x02, 0xF0, 0xF0, 0x00, 0x00}
+	expectedRead = 6
+	checkStringPairProp(t, buf, expected, expectedRead, true)
+}
+
+// Below are all the tests for the getProps function. They are split into 15 different functions, 1 for each packet type.
+// Each one tests on every property identifier at least once, plus some extra cases that may be unique to that packet.
+var (
+	payloadFormatIndicator []byte = []byte{0x01, 0x01}                                                                         // 1
+	messageExpiryInterval  []byte = []byte{0x02, 0x00, 0x00, 0x00, 0x3C}                                                       // 60
+	contentType            []byte = []byte{0x03, 0x00, 0x04, 0x6a, 0x73, 0x6F, 0x6E}                                           // "json"
+	responseTopic          []byte = []byte{0x08, 0x00, 0x0A, 0x73, 0x6f, 0x6d, 0x65, 0x2f, 0x74, 0x6f, 0x70, 0x69, 0x63}       // "some/topic"
+	correlationData        []byte = []byte{0x09, 0x00, 0x04, 0x00, 0x00, 0x01, 0x00}                                           // 4 useless bytes of data.
+	subscriptionId         []byte = []byte{0x0B, 0x01}                                                                         // 1
+	sessionExpiryInterval  []byte = []byte{0x11, 0x00, 0x00, 0x00, 0x3C}                                                       // 60
+	assignedClientId       []byte = []byte{0x12, 0x00, 0x03, 0x6f, 0x6e, 0x65}                                                 // "one"
+	serverKeepAlive        []byte = []byte{0x13, 0x01, 0x90}                                                                   // 400
+	authenticationMethod   []byte = []byte{0x15, 0x00, 0x0B, 0x53, 0x43, 0x52, 0x41, 0x4d, 0x2d, 0x53, 0x48, 0x41, 0x2d, 0x31} // "SCRAM-SHA-1"
+	authenticationData     []byte = []byte{0x16, 0x00, 0x02, 0x03, 0x0FF}                                                      // 2 useless bytes of data
+	requestProblemInfo     []byte = []byte{0x17, 0x01}                                                                         // 1
+	willDelayInterval      []byte = []byte{0x18, 0x00, 0x00, 0x00, 0x3C}                                                       // 60
+	requestResponseInfo    []byte = []byte{0x19, 0x01}                                                                         // 1
+	responseInfo           []byte = []byte{0x1A, 0x00, 0x0B, 0x73, 0x6f, 0x6d, 0x65, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67} // "some string"
+	serverReference        []byte = []byte{0x1C, 0x00, 0x0B, 0x31, 0x39, 0x32, 0x2e, 0x31, 0x36, 0x38, 0x2e, 0x32, 0x2e, 0x31} // "192.168.2.1"
+	reasonString           []byte = []byte{0x1F, 0x00, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e}                               // "reason"
+	receiveMax             []byte = []byte{0x21, 0x00, 0x63}                                                                   // 99
+	topicAliasMax          []byte = []byte{0x22, 0x01, 0x2D}                                                                   // 301
+	topicAlias             []byte = []byte{0x23, 0x00, 0x05}                                                                   // 5
+	maxQoS                 []byte = []byte{0x24, 0x01}                                                                         // 1
+	retainAvailable        []byte = []byte{0x25, 0x01}                                                                         // 1
+	userProperty           []byte = []byte{0x26, 0x00, 0x01, 0x41, 0x00, 0x02, 0x63, 0x64}                                     // "A" "cd"
+	userProperty2          []byte = []byte{0x26, 0x00, 0x02, 0x63, 0x64, 0x00, 0x01, 0x41}                                     // "cd" "A"
+	maxPacketSize          []byte = []byte{0x27, 0xFF, 0xFF, 0xFF, 0xFF}                                                       // 4294967296
+	wildcardSubAvailable   []byte = []byte{0x28, 0x01}                                                                         // 1
+	subIdAvailable         []byte = []byte{0x29, 0x00}                                                                         // 0
+	sharedSubAvailable     []byte = []byte{0x2A, 0x01}                                                                         // 1
+)
+
+func checkProps(t *testing.T, propLen, packetCode int, buf []byte, expectedM map[int][]byte, expectedUserProps [][]byte, shouldPass bool) {
+	rdr := bufio.NewReader(bytes.NewReader(buf))
+	m, userProps, err := getProps(rdr, propLen, packetCode)
+	if err != nil && shouldPass {
+		t.Fatalf("getProps failed: %v", err.Error())
+	} else if err == nil && !shouldPass {
+		t.Fatalf("getProps should have failed: %v", buf)
+	} else if !cmp.Equal(m, expectedM) && shouldPass {
+		t.Fatalf("incorrect map Got:\n%v\nExpected:\n%v", m, expectedM)
+	} else if !cmp.Equal(userProps, expectedUserProps) && shouldPass {
+		t.Fatalf("incorrect userProps. Got:\n%v\nExpected:\n%v", userProps, expectedUserProps)
+	}
+}
+func TestGetPropsCONNECT(t *testing.T) {
+	// The basics
+	packetCode := connectCode
+	checkProps(t, 2, packetCode, payloadFormatIndicator, nil, nil, false)
+	checkProps(t, 5, packetCode, messageExpiryInterval, nil, nil, false)
+	checkProps(t, 5, packetCode, contentType, nil, nil, false)
+	checkProps(t, 11, packetCode, responseTopic, nil, nil, false)
+	checkProps(t, 7, packetCode, correlationData, nil, nil, false)
+	checkProps(t, 2, packetCode, subscriptionId, nil, nil, false)
+	expected := map[int][]byte{0x11: sessionExpiryInterval[1:]}
+	checkProps(t, 2, packetCode, sessionExpiryInterval, expected, [][]byte{}, true)
+	checkProps(t, 4, packetCode, assignedClientId, nil, nil, false)
+	checkProps(t, 3, packetCode, serverKeepAlive, nil, nil, false)
+	expected = map[int][]byte{0x15: authenticationMethod[3:]}
+	checkProps(t, 14, packetCode, authenticationMethod, expected, [][]byte{}, true)
+	expected = map[int][]byte{0x16: authenticationData[3:]}
+	checkProps(t, 5, packetCode, authenticationData, expected, [][]byte{}, true)
+	expected = map[int][]byte{0x17: requestProblemInfo[1:]}
+	checkProps(t, 2, packetCode, requestProblemInfo, expected, [][]byte{}, true)
+	checkProps(t, 5, packetCode, willDelayInterval, nil, nil, false)
+	expected = map[int][]byte{0x19: requestResponseInfo[1:]}
+	checkProps(t, 2, packetCode, requestResponseInfo, expected, [][]byte{}, true)
+	checkProps(t, 14, packetCode, responseInfo, nil, nil, false)
+	checkProps(t, 14, packetCode, serverReference, nil, nil, false)
+	checkProps(t, 9, packetCode, reasonString, nil, nil, false)
+	expected = map[int][]byte{0x21: receiveMax[1:]}
+	checkProps(t, 3, packetCode, receiveMax, expected, [][]byte{}, true)
+	expected = map[int][]byte{0x22: topicAliasMax[1:]}
+	checkProps(t, 3, packetCode, topicAliasMax, expected, [][]byte{}, true)
+	checkProps(t, 3, packetCode, topicAlias, nil, nil, false)
+	checkProps(t, 2, packetCode, maxQoS, nil, nil, false)
+	checkProps(t, 2, packetCode, retainAvailable, nil, nil, false)
+	expected = map[int][]byte{}
+	expectedUProps := [][]byte{userProperty[1:]}
+	checkProps(t, 8, packetCode, userProperty, expected, expectedUProps, true)
+	expected = map[int][]byte{0x27: maxPacketSize[1:]}
+	checkProps(t, 5, packetCode, maxPacketSize, expected, [][]byte{}, true)
+	checkProps(t, 2, packetCode, wildcardSubAvailable, nil, nil, false)
+	checkProps(t, 2, packetCode, subIdAvailable, nil, nil, false)
+	checkProps(t, 2, packetCode, sharedSubAvailable, nil, nil, false)
+	// Special ones.
+	// multiple userProps, using the same one.
+	payload := append(userProperty, userProperty...)
+	expected = map[int][]byte{}
+	expectedUProps = [][]byte{userProperty[1:], userProperty[1:]}
+	checkProps(t, 16, packetCode, payload, expected, expectedUProps, true)
+	// multiple userProps, using different ones.
+	payload = append(userProperty, userProperty2...)
+	expected = map[int][]byte{}
+	expectedUProps = [][]byte{userProperty[1:], userProperty2[1:]}
+	checkProps(t, 16, packetCode, payload, expected, expectedUProps, true)
+	// multiple different valid properties
+	payload = append(authenticationData, append(sessionExpiryInterval, authenticationMethod...)...)
+	expected = map[int][]byte{0x15: authenticationMethod[3:], 0x16: authenticationData[3:], 0x11: sessionExpiryInterval[1:]}
+	checkProps(t, 24, packetCode, payload, expected, [][]byte{}, true)
+	// multiple different properties with one invalid
+	payload = append(authenticationData, append(sessionExpiryInterval, append(authenticationMethod, serverKeepAlive...)...)...)
+	checkProps(t, 27, packetCode, payload, nil, nil, false)
+	// userProps + other props in some random order.
+	payload = append(authenticationData, append(userProperty, append(sessionExpiryInterval, append(userProperty2, authenticationMethod...)...)...)...)
+	expected = map[int][]byte{0x15: authenticationMethod[3:], 0x16: authenticationData[3:], 0x11: sessionExpiryInterval[1:]}
+	expectedUProps = [][]byte{userProperty[1:], userProperty2[1:]}
+	checkProps(t, 40, packetCode, payload, expected, expectedUProps, true)
 }

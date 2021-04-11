@@ -9,10 +9,12 @@ import (
 )
 
 type Client struct {
-	Conn         net.Conn
-	Rdr          *bufio.Reader
-	connectFlags *ConnectFlags
-	KeepAlive    uint16
+	Conn                  net.Conn
+	Rdr                   *bufio.Reader
+	connectFlags          *ConnectFlags
+	KeepAlive             uint16
+	SessionExpiryInterval uint32
+	ReceiveMaximum        uint16
 }
 
 func (client *Client) handleConnect(remainingLength uint32) error {
@@ -54,9 +56,15 @@ func (client *Client) handleConnect(remainingLength uint32) error {
 
 	// And now for the properties!
 	// TODO
-	// To get prop length, read bytes until we get one of the prop identifiers.
-	// If the first byte is 0x00, then there are no props so skip this.
-	// propLength := getPropertyLength(client.Rdr)
+	_, propLength, err := decodeVarByteInt(client.Rdr)
+	if err != nil {
+		return err
+	}
+	fmt.Println(propLength)
+
+	// TODO
+	// Set all the props. Use a defualt value if not found.
+	// Put them all in a map, then assign
 
 	return nil
 }
@@ -145,7 +153,7 @@ func (client *Client) processFixedHeader() (byte, uint32, error) {
 		log.Fatalln("Not yet implemented.")
 	}
 
-	remainingLength, err := decodeVarByteInt(client.Rdr)
+	_, remainingLength, err := decodeVarByteInt(client.Rdr)
 	if err != nil {
 		return 0x00, 0, err
 	}
