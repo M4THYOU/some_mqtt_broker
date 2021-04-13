@@ -42,7 +42,7 @@ func main() {
 			fmt.Println("Error accepting: ", err.Error())
 			os.Exit(2)
 		}
-		client := &client.Client{Conn: conn, Rdr: packet.NewReader(conn)}
+		client := &client.Client{Conn: conn, Rdr: packet.NewReader(conn, 0)}
 		go listen(client)
 	}
 

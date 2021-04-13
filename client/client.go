@@ -19,38 +19,38 @@ type Client struct {
 	ReceiveMaximum        uint16
 }
 
-func (client *Client) handleConnect(remainingLength int) (int, error) {
+func (client *Client) handleConnect() error {
 	fmt.Println("Handle Connect")
 
 	// verify the protocol is set to 'MQTT'
 	err := mqtt.VerifyProtocol(client.Rdr)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	// Check protocol version. Currently only supports v5.0
 	b, err := client.Rdr.ReadByte()
 	if err != nil {
-		return 0, err
+		return err
 	} else if b != 5 {
 		msg := fmt.Sprintf("This broker currently only supports MQTT v5.0. You specified: %d", b)
-		return 0, errors.New(msg)
+		return errors.New(msg)
 	}
 
 	// Check the connect flags!
 	b, err = client.Rdr.ReadByte()
 	if err != nil {
-		return 0, err
+		return err
 	}
 	flags, err := mqtt.GetConnectFlags(b)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	client.connectFlags = flags
 
 	keepAlive, err := mqtt.GetKeepAlive(client.Rdr)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	client.KeepAlive = keepAlive
 
@@ -60,13 +60,13 @@ func (client *Client) handleConnect(remainingLength int) (int, error) {
 	// TODO
 	_, propLength, err := mqtt.DecodeVarByteInt(client.Rdr)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	fmt.Println(propLength)
 
 	props, userProps, err := mqtt.GetProps(client.Rdr, int(propLength), mqtt.ConnectCode)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	// TODO
 	// Do things with these props. Use a default value if not found.
@@ -79,87 +79,87 @@ func (client *Client) handleConnect(remainingLength int) (int, error) {
 	// If zero length, assign one from the server.
 	clientId, err := mqtt.GetClientId(client.Rdr)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	fmt.Printf("Client ID: %v\n", clientId)
 
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handleConnack(remainingLength int) (int, error) {
+func (client *Client) handleConnack() error {
 	fmt.Println("Handle Connack")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handlePublish(remainingLength int) (int, error) {
+func (client *Client) handlePublish() error {
 	fmt.Println("Handle Publish")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handlePuback(remainingLength int) (int, error) {
+func (client *Client) handlePuback() error {
 	fmt.Println("Handle Puback")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handlePubrec(remainingLength int) (int, error) {
+func (client *Client) handlePubrec() error {
 	fmt.Println("Handle Pubrec")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handlePubrel(remainingLength int) (int, error) {
+func (client *Client) handlePubrel() error {
 	fmt.Println("Handle Pubrel")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handlePubcomp(remainingLength int) (int, error) {
+func (client *Client) handlePubcomp() error {
 	fmt.Println("Handle Pubcomp")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handleSubscribe(remainingLength int) (int, error) {
+func (client *Client) handleSubscribe() error {
 	fmt.Println("Handle Subscribe")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handleSuback(remainingLength int) (int, error) {
+func (client *Client) handleSuback() error {
 	fmt.Println("Handle Suback")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handleUnsubscribe(remainingLength int) (int, error) {
+func (client *Client) handleUnsubscribe() error {
 	fmt.Println("Handle Unsubscribe")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handleUnsuback(remainingLength int) (int, error) {
+func (client *Client) handleUnsuback() error {
 	fmt.Println("Handle Unsuback")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handlePingreq(remainingLength int) (int, error) {
+func (client *Client) handlePingreq() error {
 	fmt.Println("Handle Pingreq")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handlePingresp(remainingLength int) (int, error) {
+func (client *Client) handlePingresp() error {
 	fmt.Println("Handle Pingresp")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handleDisconnect(remainingLength int) (int, error) {
+func (client *Client) handleDisconnect() error {
 	fmt.Println("Handle Disconnect")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
-func (client *Client) handleAuth(remainingLength int) (int, error) {
+func (client *Client) handleAuth() error {
 	fmt.Println("Handle Auth")
 	log.Fatalln("Not yet implemented.")
-	return remainingLength, nil
+	return nil
 }
 
 // processFixedHeader processes the fixed header.
 // Returns the request type code, remaining length of the packet, and maybe an error.
 func (client *Client) processFixedHeader() (byte, int, error) {
-	fmt.Println("Fixed header:")
+	fmt.Println("(fixed header)")
 	b1, err := client.Rdr.ReadByte()
 	if err != nil {
 		return 0x00, 0, err
@@ -180,55 +180,57 @@ func (client *Client) processFixedHeader() (byte, int, error) {
 	return reqType, int(remainingLength), nil
 }
 
-func (client *Client) processVarHeader(reqType byte, remainingLength int) (remLength int, err error) {
-	fmt.Println("The rest:")
+// processVarHeader processes the variable header and payload of the packet (if payload exists)
+func (client *Client) processVarHeader(reqType byte) (err error) {
+	fmt.Println("(var header and payload)")
 
 	switch reqType {
 	case mqtt.ConnectCode:
-		remLength, err = client.handleConnect(remainingLength)
+		err = client.handleConnect()
 	case mqtt.ConnackCode:
-		remLength, err = client.handleConnack(remainingLength)
+		err = client.handleConnack()
 	case mqtt.PublishCode:
-		remLength, err = client.handlePublish(remainingLength)
+		err = client.handlePublish()
 	case mqtt.PubackCode:
-		remLength, err = client.handlePuback(remainingLength)
+		err = client.handlePuback()
 	case mqtt.PubrecCode:
-		remLength, err = client.handlePubrec(remainingLength)
+		err = client.handlePubrec()
 	case mqtt.PubrelCode:
-		remLength, err = client.handlePubrel(remainingLength)
+		err = client.handlePubrel()
 	case mqtt.PubcompCode:
-		remLength, err = client.handlePubcomp(remainingLength)
+		err = client.handlePubcomp()
 	case mqtt.SubscribeCode:
-		remLength, err = client.handleSubscribe(remainingLength)
+		err = client.handleSubscribe()
 	case mqtt.SubackCode:
-		remLength, err = client.handleSuback(remainingLength)
+		err = client.handleSuback()
 	case mqtt.UnsubscribeCode:
-		remLength, err = client.handleUnsubscribe(remainingLength)
+		err = client.handleUnsubscribe()
 	case mqtt.UnsubackCode:
-		remLength, err = client.handleUnsuback(remainingLength)
+		err = client.handleUnsuback()
 	case mqtt.PingreqCode:
-		remLength, err = client.handlePingreq(remainingLength)
+		err = client.handlePingreq()
 	case mqtt.PingrespCode:
-		remLength, err = client.handlePingresp(remainingLength)
+		err = client.handlePingresp()
 	case mqtt.DisconnectCode:
-		remLength, err = client.handleDisconnect(remainingLength)
+		err = client.handleDisconnect()
 	case mqtt.AuthCode:
-		remLength, err = client.handleAuth(remainingLength)
+		err = client.handleAuth()
 	default:
 		msg := fmt.Sprintf("No matching case for request type: %d", reqType)
-		return remLength, errors.New(msg)
+		return errors.New(msg)
 	}
-	return remLength, err
+	return err
 
 }
 
 func (client *Client) ProcessPacket() error {
-	// process the fixed header.
+	// fixed header can be up to 5 bytes, so set that as the limit.
+	client.Rdr.SetRemainingLength(5)
 	reqType, remLen, err := client.processFixedHeader() // make this guy return remaining length!
 	if err != nil {
 		return err
 	}
-	// check the protocol is correct then run the switch statement currently in processFixedHeader
-	remLen, err = client.processVarHeader(reqType, remLen)
+	client.Rdr.SetRemainingLength(remLen)
+	err = client.processVarHeader(reqType)
 	return err
 }

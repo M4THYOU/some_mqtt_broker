@@ -12,6 +12,10 @@ import (
 
 var _ = fmt.Printf // For debugging; delete when done.
 
+// Just set a random high value for this.
+// This test suite is not meant to test the reader.
+const dummyRemainingLength = 50
+
 const (
 	connectFirstByte = byte(16) // 00010000
 	connackFirstByte = byte(32) // 00100000
@@ -162,7 +166,7 @@ func TestGetRequestType(t *testing.T) {
 }
 
 func checkSliceProtocol(t *testing.T, buf []byte, shouldPass bool) {
-	rdr := packet.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
 	err := VerifyProtocol(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("Invalid protocol: %v", err.Error())
@@ -227,7 +231,7 @@ func checkKeepAlive(t *testing.T, i, expected uint16) {
 	// Convert the int to two bytes.
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, i)
-	rdr := packet.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
 	// Get the value via testing!
 	keepAlive, err := GetKeepAlive(rdr)
 	if err != nil {
@@ -246,8 +250,7 @@ func TestGetKeepAlive(t *testing.T) {
 }
 
 func checkDecodeVarByteInt(t *testing.T, buf []byte, expectedByteCount int, expected uint32, shouldPass bool) {
-	// Convert the int to two bytes.
-	rdr := packet.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
 	// Get the value via testing!
 	i, val, err := DecodeVarByteInt(rdr)
 	if err != nil && shouldPass {
@@ -298,7 +301,7 @@ func TestDecodeVarByteInt(t *testing.T) {
 
 func checkStringPropParams(t *testing.T, i int, buf []byte, expectedCount int, shouldPass bool) {
 	expectedI := i + 2 // since the function reads 2 bytes, the newI should be 2 greater than i.
-	rdr := packet.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
 	count, newI, err := getStringPropParams(i, rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("getStringPropParams failed: %v", err.Error())
@@ -328,7 +331,7 @@ func TestGetStringPropParams(t *testing.T) {
 }
 
 func checkStringPairProp(t *testing.T, buf, expected []byte, expectedRead int, shouldPass bool) {
-	rdr := packet.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
 	numRead, res, err := getStringPairProp(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("getStringPropParams failed: %v", err.Error())
@@ -364,7 +367,7 @@ func TestGetStringPairProp(t *testing.T) {
 }
 
 func checkClientId(t *testing.T, buf []byte, expected string, shouldPass bool) {
-	rdr := packet.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
 	clientId, err := GetClientId(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("getClientId failed: %v", err.Error())
@@ -422,7 +425,7 @@ var (
 )
 
 func checkProps(t *testing.T, propLen, packetCode int, buf []byte, expectedM map[int][]byte, expectedUserProps [][]byte, shouldPass bool) {
-	rdr := packet.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
 	m, userProps, err := GetProps(rdr, propLen, packetCode)
 	if err != nil && shouldPass {
 		t.Fatalf("getProps failed: %v", err.Error())

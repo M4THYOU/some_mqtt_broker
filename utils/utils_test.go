@@ -8,6 +8,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+// Just set a random high value for this.
+// This test suite is not meant to test the reader.
+const dummyRemainingLength = 50
+
 func checkIsIntInSlice(t *testing.T, i int, arr []int, expected bool) {
 	res := IsIntInSlice(i, arr)
 	if res != expected {
@@ -24,7 +28,7 @@ func TestIsIntInSlice(t *testing.T) {
 }
 
 func checkReadBytesToSlice(t *testing.T, count int, buf, expected []byte, shouldPass bool) {
-	rdr := packet.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
 	res, err := ReadBytesToSlice(count, rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("failed to read bytes to slice: %v", err.Error())
