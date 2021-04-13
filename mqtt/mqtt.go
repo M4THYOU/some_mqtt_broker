@@ -292,7 +292,7 @@ func GetProps(rdr *packet.Reader, propLength, packetCode int) (map[int][]byte, [
 			}
 			userProps = append(userProps, prop)
 		} else if count == 0 { // this indicates it must be a Variable Byte Integer!
-			numRead, val, err := DecodeVarByteInt(rdr)
+			numRead, val, err := rdr.ReadVarByteInt()
 			if err != nil {
 				return nil, nil, err
 			}
@@ -312,31 +312,6 @@ func GetProps(rdr *packet.Reader, propLength, packetCode int) (map[int][]byte, [
 	}
 
 	return m, userProps, nil
-}
-
-// DecodeVarByteInt returns the integer value of a decoded Variable Byte Int according to MQTT v5.0 Spec.
-// Returns number of bytes read, the integer, and possibly an error.
-func DecodeVarByteInt(rdr *packet.Reader) (int, uint32, error) {
-	var multiplier, val uint32 = 1, 0
-	var b byte
-	var err error
-	bytesRead := 0
-	for {
-		b, err = rdr.ReadByte()
-		bytesRead++
-		if err != nil {
-			return 0, 0, err
-		}
-		val += uint32(b&0x7F) * multiplier
-		if multiplier > 128*128*128 {
-			return 0, 0, errors.New("malformed variable byte integer")
-		}
-		multiplier *= 128
-		if (b & 0x80) == 0 {
-			break
-		}
-	}
-	return bytesRead, val, nil
 }
 
 // GetConnectFlags parses the given byte into flags for the connect packet.

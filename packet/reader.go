@@ -35,3 +35,28 @@ func (rdr *Reader) ReadByte() (byte, error) {
 	rdr.remainingLength--
 	return b, nil
 }
+
+// ReadVarByteInt returns the integer value of a decoded Variable Byte Int according to MQTT v5.0 Spec.
+// Returns number of bytes read, the integer, and possibly an error.
+func (rdr *Reader) ReadVarByteInt() (int, uint32, error) {
+	var multiplier, val uint32 = 1, 0
+	var b byte
+	var err error
+	bytesRead := 0
+	for {
+		b, err = rdr.ReadByte()
+		bytesRead++
+		if err != nil {
+			return 0, 0, err
+		}
+		val += uint32(b&0x7F) * multiplier
+		if multiplier > 128*128*128 {
+			return 0, 0, errors.New("malformed variable byte integer")
+		}
+		multiplier *= 128
+		if (b & 0x80) == 0 {
+			break
+		}
+	}
+	return bytesRead, val, nil
+}

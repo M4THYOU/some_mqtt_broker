@@ -249,56 +249,6 @@ func TestGetKeepAlive(t *testing.T) {
 	checkKeepAlive(t, val, val)
 }
 
-func checkDecodeVarByteInt(t *testing.T, buf []byte, expectedByteCount int, expected uint32, shouldPass bool) {
-	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)
-	// Get the value via testing!
-	i, val, err := DecodeVarByteInt(rdr)
-	if err != nil && shouldPass {
-		t.Fatalf("decodeVarByteInt failed: %v", err.Error())
-	} else if err == nil && !shouldPass {
-		t.Fatalf("decodeVarByteInt should have failed: %v", val)
-	} else if val != expected && shouldPass {
-		t.Fatalf("Got:\n%v\nExpected:\n%v", val, expected)
-	} else if i != expectedByteCount && shouldPass {
-		t.Fatalf("read %d bytes, expected %d", i, expectedByteCount)
-	}
-}
-func TestDecodeVarByteInt(t *testing.T) {
-	buf := []byte{0xFF, 0x64}
-	var expected uint32 = 12927
-	checkDecodeVarByteInt(t, buf, 2, expected, true)
-	buf = []byte{0x76}
-	expected = 118
-	checkDecodeVarByteInt(t, buf, 1, expected, true)
-	buf = []byte{0x7F}
-	expected = 127
-	checkDecodeVarByteInt(t, buf, 1, expected, true)
-	buf = []byte{0x80, 0x01}
-	expected = 128
-	checkDecodeVarByteInt(t, buf, 2, expected, true)
-	buf = []byte{0x00}
-	expected = 0
-	checkDecodeVarByteInt(t, buf, 1, expected, true)
-	buf = []byte{0x80, 0x80, 0x01}
-	expected = 16384
-	checkDecodeVarByteInt(t, buf, 3, expected, true)
-	buf = []byte{0xFF, 0xFF, 0x7F}
-	expected = 2097151
-	checkDecodeVarByteInt(t, buf, 3, expected, true)
-	buf = []byte{0x80, 0x80, 0x80, 0x01}
-	expected = 2097152
-	checkDecodeVarByteInt(t, buf, 4, expected, true)
-	buf = []byte{0xFF, 0xFF, 0xFF, 0x7F}
-	expected = 268435455
-	checkDecodeVarByteInt(t, buf, 4, expected, true)
-	buf = []byte{0xFF, 0xFF, 0xFF, 0x7F, 0x01}
-	expected = 268435455
-	checkDecodeVarByteInt(t, buf, 4, expected, true)
-	buf = []byte{0xFF, 0xFF, 0xFF, 0xFF, 0x01}
-	expected = 268435456
-	checkDecodeVarByteInt(t, buf, 5, expected, false)
-}
-
 func checkStringPropParams(t *testing.T, i int, buf []byte, expectedCount int, shouldPass bool) {
 	expectedI := i + 2 // since the function reads 2 bytes, the newI should be 2 greater than i.
 	rdr := packet.NewReader(bytes.NewReader(buf), dummyRemainingLength)

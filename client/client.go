@@ -58,7 +58,7 @@ func (client *Client) handleConnect() error {
 
 	// And now for the properties!
 	// TODO
-	_, propLength, err := mqtt.DecodeVarByteInt(client.Rdr)
+	_, propLength, err := client.Rdr.ReadVarByteInt()
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (client *Client) processFixedHeader() (byte, int, error) {
 		log.Fatalln("Not yet implemented.")
 	}
 
-	_, remainingLength, err := mqtt.DecodeVarByteInt(client.Rdr)
+	_, remainingLength, err := client.Rdr.ReadVarByteInt()
 	if err != nil {
 		return 0x00, 0, err
 	}
