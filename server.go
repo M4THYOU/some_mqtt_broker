@@ -1,22 +1,22 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"os"
 	"time"
 
-	mqtt "github.com/M4THYOU/some_mqtt_broker/broker"
+	"github.com/M4THYOU/some_mqtt_broker/client"
 	"github.com/M4THYOU/some_mqtt_broker/config"
+	"github.com/M4THYOU/some_mqtt_broker/packet"
 )
 
-func listen(client *mqtt.Client) {
-	defer client.Conn.Close()
+func listen(c *client.Client) {
+	defer c.Conn.Close()
 	for {
 		// to timeout hanging/broken connections.
-		client.Conn.SetDeadline(time.Now().Add(time.Second * 60))
-		err := client.ProcessPacket()
+		c.Conn.SetDeadline(time.Now().Add(time.Second * 60))
+		err := c.ProcessPacket()
 		if err != nil {
 			fmt.Println("Error processing:", err.Error())
 			break
@@ -42,7 +42,7 @@ func main() {
 			fmt.Println("Error accepting: ", err.Error())
 			os.Exit(2)
 		}
-		client := &mqtt.Client{Conn: conn, Rdr: bufio.NewReader(conn)}
+		client := &client.Client{Conn: conn, Rdr: packet.NewReader(conn)}
 		go listen(client)
 	}
 

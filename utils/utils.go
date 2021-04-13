@@ -1,6 +1,6 @@
 package utils
 
-import "bufio"
+import "github.com/M4THYOU/some_mqtt_broker/packet"
 
 // IsIntInSlice checks if the provided integer is in the provided slice of integers.
 func IsIntInSlice(i int, arr []int) bool {
@@ -14,7 +14,7 @@ func IsIntInSlice(i int, arr []int) bool {
 
 // ReadBytesToSlice reads count bytes into a slice of bytes.
 // On error, the current state of the slice, prior to error, is still returned.
-func ReadBytesToSlice(count int, rdr *bufio.Reader) ([]byte, error) {
+func ReadBytesToSlice(count int, rdr *packet.Reader) ([]byte, error) {
 	buf := make([]byte, 0)
 	for i := 0; i < count; i++ {
 		b, err := rdr.ReadByte()

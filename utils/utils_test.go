@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"bufio"
 	"bytes"
 	"testing"
 
+	"github.com/M4THYOU/some_mqtt_broker/packet"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -24,7 +24,7 @@ func TestIsIntInSlice(t *testing.T) {
 }
 
 func checkReadBytesToSlice(t *testing.T, count int, buf, expected []byte, shouldPass bool) {
-	rdr := bufio.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf))
 	res, err := ReadBytesToSlice(count, rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("failed to read bytes to slice: %v", err.Error())

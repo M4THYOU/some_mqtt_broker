@@ -1,12 +1,12 @@
-package broker
+package mqtt
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"testing"
 
+	"github.com/M4THYOU/some_mqtt_broker/packet"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -51,119 +51,119 @@ const (
 // }
 
 func TestGetRequestType(t *testing.T) {
-	b := getRequestType(connectFirstByte)
-	if b == connackCode {
-		t.Fatalf("Connect byte (%08b) and connackCode (%08b) should NOT be equal.", b, connackCode)
+	b := GetRequestType(connectFirstByte)
+	if b == ConnackCode {
+		t.Fatalf("Connect byte (%08b) and connackCode (%08b) should NOT be equal.", b, ConnackCode)
 	}
-	if b != connectCode {
-		t.Fatalf("Connect bytes should be equal: %08b, %08b", b, connectCode)
+	if b != ConnectCode {
+		t.Fatalf("Connect bytes should be equal: %08b, %08b", b, ConnectCode)
 	}
 
-	b = getRequestType(connackFirstByte)
-	if b != connackCode {
-		t.Fatalf("Connack bytes should be equal: %08b, %08b", b, connackCode)
+	b = GetRequestType(connackFirstByte)
+	if b != ConnackCode {
+		t.Fatalf("Connack bytes should be equal: %08b, %08b", b, ConnackCode)
 	}
-	b = getRequestType(publishFirstByte1)
-	if b != publishCode {
-		t.Fatalf("Publish1 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte1)
+	if b != PublishCode {
+		t.Fatalf("Publish1 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte2)
-	if b != publishCode {
-		t.Fatalf("Publish2 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte2)
+	if b != PublishCode {
+		t.Fatalf("Publish2 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte3)
-	if b != publishCode {
-		t.Fatalf("Publish3 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte3)
+	if b != PublishCode {
+		t.Fatalf("Publish3 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte4)
-	if b != publishCode {
-		t.Fatalf("Publish4 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte4)
+	if b != PublishCode {
+		t.Fatalf("Publish4 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte5)
-	if b != publishCode {
-		t.Fatalf("Publish5 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte5)
+	if b != PublishCode {
+		t.Fatalf("Publish5 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte6)
-	if b != publishCode {
-		t.Fatalf("Publish6 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte6)
+	if b != PublishCode {
+		t.Fatalf("Publish6 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte7)
-	if b != publishCode {
-		t.Fatalf("Publish7 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte7)
+	if b != PublishCode {
+		t.Fatalf("Publish7 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte8)
-	if b != publishCode {
-		t.Fatalf("Publish8 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte8)
+	if b != PublishCode {
+		t.Fatalf("Publish8 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte9)
-	if b != publishCode {
-		t.Fatalf("Publish9 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte9)
+	if b != PublishCode {
+		t.Fatalf("Publish9 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte10)
-	if b != publishCode {
-		t.Fatalf("Publish10 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte10)
+	if b != PublishCode {
+		t.Fatalf("Publish10 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte11)
-	if b != publishCode {
-		t.Fatalf("Publish11 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte11)
+	if b != PublishCode {
+		t.Fatalf("Publish11 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(publishFirstByte12)
-	if b != publishCode {
-		t.Fatalf("Publish12 bytes should be equal: %08b, %08b", b, publishCode)
+	b = GetRequestType(publishFirstByte12)
+	if b != PublishCode {
+		t.Fatalf("Publish12 bytes should be equal: %08b, %08b", b, PublishCode)
 	}
-	b = getRequestType(pubackFirstByte)
-	if b != pubackCode {
-		t.Fatalf("Puback bytes should be equal: %08b, %08b", b, pubackCode)
+	b = GetRequestType(pubackFirstByte)
+	if b != PubackCode {
+		t.Fatalf("Puback bytes should be equal: %08b, %08b", b, PubackCode)
 	}
-	b = getRequestType(pubrecFirstByte)
-	if b != pubrecCode {
-		t.Fatalf("Pubrec bytes should be equal: %08b, %08b", b, pubrecCode)
+	b = GetRequestType(pubrecFirstByte)
+	if b != PubrecCode {
+		t.Fatalf("Pubrec bytes should be equal: %08b, %08b", b, PubrecCode)
 	}
-	b = getRequestType(pubrelFirstByte)
-	if b != pubrelCode {
-		t.Fatalf("Pubrel bytes should be equal: %08b, %08b", b, pubrelCode)
+	b = GetRequestType(pubrelFirstByte)
+	if b != PubrelCode {
+		t.Fatalf("Pubrel bytes should be equal: %08b, %08b", b, PubrelCode)
 	}
-	b = getRequestType(pubcompFirstByte)
-	if b != pubcompCode {
-		t.Fatalf("Pubcomp bytes should be equal: %08b, %08b", b, pubcompCode)
+	b = GetRequestType(pubcompFirstByte)
+	if b != PubcompCode {
+		t.Fatalf("Pubcomp bytes should be equal: %08b, %08b", b, PubcompCode)
 	}
-	b = getRequestType(subscribeFirstByte)
-	if b != subscribeCode {
-		t.Fatalf("Subscribe bytes should be equal: %08b, %08b", b, subscribeCode)
+	b = GetRequestType(subscribeFirstByte)
+	if b != SubscribeCode {
+		t.Fatalf("Subscribe bytes should be equal: %08b, %08b", b, SubscribeCode)
 	}
-	b = getRequestType(subackFirstByte)
-	if b != subackCode {
-		t.Fatalf("Suback bytes should be equal: %08b, %08b", b, subackCode)
+	b = GetRequestType(subackFirstByte)
+	if b != SubackCode {
+		t.Fatalf("Suback bytes should be equal: %08b, %08b", b, SubackCode)
 	}
-	b = getRequestType(unsubscribeFirstByte)
-	if b != unsubscribeCode {
-		t.Fatalf("Unsubscribe bytes should be equal: %08b, %08b", b, unsubscribeCode)
+	b = GetRequestType(unsubscribeFirstByte)
+	if b != UnsubscribeCode {
+		t.Fatalf("Unsubscribe bytes should be equal: %08b, %08b", b, UnsubscribeCode)
 	}
-	b = getRequestType(unsubackFirstByte)
-	if b != unsubackCode {
-		t.Fatalf("Unsuback bytes should be equal: %08b, %08b", b, unsubackCode)
+	b = GetRequestType(unsubackFirstByte)
+	if b != UnsubackCode {
+		t.Fatalf("Unsuback bytes should be equal: %08b, %08b", b, UnsubackCode)
 	}
-	b = getRequestType(pingreqFirstByte)
-	if b != pingreqCode {
-		t.Fatalf("Pingreq bytes should be equal: %08b, %08b", b, pingreqCode)
+	b = GetRequestType(pingreqFirstByte)
+	if b != PingreqCode {
+		t.Fatalf("Pingreq bytes should be equal: %08b, %08b", b, PingreqCode)
 	}
-	b = getRequestType(pingrespFirstByte)
-	if b != pingrespCode {
-		t.Fatalf("Pingresp bytes should be equal: %08b, %08b", b, pingrespCode)
+	b = GetRequestType(pingrespFirstByte)
+	if b != PingrespCode {
+		t.Fatalf("Pingresp bytes should be equal: %08b, %08b", b, PingrespCode)
 	}
-	b = getRequestType(disconnectFirstByte)
-	if b != disconnectCode {
-		t.Fatalf("Disconnect bytes should be equal: %08b, %08b", b, disconnectCode)
+	b = GetRequestType(disconnectFirstByte)
+	if b != DisconnectCode {
+		t.Fatalf("Disconnect bytes should be equal: %08b, %08b", b, DisconnectCode)
 	}
-	b = getRequestType(authFirstByte)
-	if b != authCode {
-		t.Fatalf("Auth bytes should be equal: %08b, %08b", b, authCode)
+	b = GetRequestType(authFirstByte)
+	if b != AuthCode {
+		t.Fatalf("Auth bytes should be equal: %08b, %08b", b, AuthCode)
 	}
 }
 
 func checkSliceProtocol(t *testing.T, buf []byte, shouldPass bool) {
-	rdr := bufio.NewReader(bytes.NewReader(buf))
-	err := verifyProtocol(rdr)
+	rdr := packet.NewReader(bytes.NewReader(buf))
+	err := VerifyProtocol(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("Invalid protocol: %v", err.Error())
 	} else if err == nil && !shouldPass {
@@ -191,7 +191,7 @@ func TestVerifyProtocol(t *testing.T) {
 }
 
 func checkConnectFlags(t *testing.T, b byte, expected *ConnectFlags, shouldPass bool) {
-	flags, err := getConnectFlags(b)
+	flags, err := GetConnectFlags(b)
 	if err != nil && shouldPass {
 		t.Fatalf("Invalid flags byte: %v", err.Error())
 	} else if err == nil && !shouldPass {
@@ -227,9 +227,9 @@ func checkKeepAlive(t *testing.T, i, expected uint16) {
 	// Convert the int to two bytes.
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, i)
-	rdr := bufio.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf))
 	// Get the value via testing!
-	keepAlive, err := getKeepAlive(rdr)
+	keepAlive, err := GetKeepAlive(rdr)
 	if err != nil {
 		t.Fatalf("getKeepAlive failed: %v", err.Error())
 	} else if keepAlive != expected {
@@ -247,9 +247,9 @@ func TestGetKeepAlive(t *testing.T) {
 
 func checkDecodeVarByteInt(t *testing.T, buf []byte, expectedByteCount int, expected uint32, shouldPass bool) {
 	// Convert the int to two bytes.
-	rdr := bufio.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf))
 	// Get the value via testing!
-	i, val, err := decodeVarByteInt(rdr)
+	i, val, err := DecodeVarByteInt(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("decodeVarByteInt failed: %v", err.Error())
 	} else if err == nil && !shouldPass {
@@ -298,7 +298,7 @@ func TestDecodeVarByteInt(t *testing.T) {
 
 func checkStringPropParams(t *testing.T, i int, buf []byte, expectedCount int, shouldPass bool) {
 	expectedI := i + 2 // since the function reads 2 bytes, the newI should be 2 greater than i.
-	rdr := bufio.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf))
 	count, newI, err := getStringPropParams(i, rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("getStringPropParams failed: %v", err.Error())
@@ -328,7 +328,7 @@ func TestGetStringPropParams(t *testing.T) {
 }
 
 func checkStringPairProp(t *testing.T, buf, expected []byte, expectedRead int, shouldPass bool) {
-	rdr := bufio.NewReader(bytes.NewReader(buf))
+	rdr := packet.NewReader(bytes.NewReader(buf))
 	numRead, res, err := getStringPairProp(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("getStringPropParams failed: %v", err.Error())
@@ -364,8 +364,8 @@ func TestGetStringPairProp(t *testing.T) {
 }
 
 func checkClientId(t *testing.T, buf []byte, expected string, shouldPass bool) {
-	rdr := bufio.NewReader(bytes.NewReader(buf))
-	clientId, err := getClientId(rdr)
+	rdr := packet.NewReader(bytes.NewReader(buf))
+	clientId, err := GetClientId(rdr)
 	if err != nil && shouldPass {
 		t.Fatalf("getClientId failed: %v", err.Error())
 	} else if err == nil && !shouldPass {
@@ -422,8 +422,8 @@ var (
 )
 
 func checkProps(t *testing.T, propLen, packetCode int, buf []byte, expectedM map[int][]byte, expectedUserProps [][]byte, shouldPass bool) {
-	rdr := bufio.NewReader(bytes.NewReader(buf))
-	m, userProps, err := getProps(rdr, propLen, packetCode)
+	rdr := packet.NewReader(bytes.NewReader(buf))
+	m, userProps, err := GetProps(rdr, propLen, packetCode)
 	if err != nil && shouldPass {
 		t.Fatalf("getProps failed: %v", err.Error())
 	} else if err == nil && !shouldPass {
@@ -436,7 +436,7 @@ func checkProps(t *testing.T, propLen, packetCode int, buf []byte, expectedM map
 }
 func TestGetPropsCONNECT(t *testing.T) {
 	// The basics
-	packetCode := connectCode
+	packetCode := ConnectCode
 	checkProps(t, 2, packetCode, payloadFormatIndicator, nil, nil, false)
 	checkProps(t, 5, packetCode, messageExpiryInterval, nil, nil, false)
 	checkProps(t, 5, packetCode, contentType, nil, nil, false)

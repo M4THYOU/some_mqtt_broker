@@ -1,39 +1,38 @@
-package broker
+package mqtt
 
 import (
-	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
 
+	"github.com/M4THYOU/some_mqtt_broker/packet"
 	"github.com/M4THYOU/some_mqtt_broker/utils"
 )
 
 var _ = fmt.Printf // For debugging; delete when done.
 
 const (
-	connectCode     = 0x01
-	connackCode     = 0x02
-	publishCode     = 0x03
-	pubackCode      = 0x04
-	pubrecCode      = 0x05
-	pubrelCode      = 0x06
-	pubcompCode     = 0x07
-	subscribeCode   = 0x08
-	subackCode      = 0x09
-	unsubscribeCode = 0x0A
-	unsubackCode    = 0x0B
-	pingreqCode     = 0x0C
-	pingrespCode    = 0x0D
-	disconnectCode  = 0x0E
-	authCode        = 0x0F
-	willPropsCode   = 0x00 // not defined by the spec, but we use this in getProps.
+	ConnectCode     = 0x01
+	ConnackCode     = 0x02
+	PublishCode     = 0x03
+	PubackCode      = 0x04
+	PubrecCode      = 0x05
+	PubrelCode      = 0x06
+	PubcompCode     = 0x07
+	SubscribeCode   = 0x08
+	SubackCode      = 0x09
+	UnsubscribeCode = 0x0A
+	UnsubackCode    = 0x0B
+	PingreqCode     = 0x0C
+	PingrespCode    = 0x0D
+	DisconnectCode  = 0x0E
+	AuthCode        = 0x0F
+	WillPropsCode   = 0x00 // not defined by the spec, but we use this in getProps.
 )
 
 // Define all the packet structs.
 type Connect struct {
 	// Variable Header
-	Flags     ConnectFlags
 	KeepAlive uint16
 	// Properties (Still in Variable Header)
 	SessionExpiryInterval      uint32
@@ -69,9 +68,9 @@ type Pingresp struct{}
 type Disconnect struct{}
 type Auth struct{}
 
-// getClientId gets the client ID from the next available bytes in the reader.
+// GetClientId gets the client ID from the next available bytes in the reader.
 // If length is 0, assigns one randomly.
-func getClientId(rdr *bufio.Reader) (string, error) {
+func GetClientId(rdr *packet.Reader) (string, error) {
 	msb, err := rdr.ReadByte()
 	if err != nil {
 		return "", err
@@ -101,7 +100,7 @@ func getClientId(rdr *bufio.Reader) (string, error) {
 
 // getStringPropParams should only be called by getProps. Note that this function also works for Binary Data.
 // Returns the number of bytes to be read, the new total of bytes read, and possibly an error.
-func getStringPropParams(i int, rdr *bufio.Reader) (count, newI int, err error) {
+func getStringPropParams(i int, rdr *packet.Reader) (count, newI int, err error) {
 	msb, err := rdr.ReadByte()
 	if err != nil {
 		return 0, 0, err
@@ -117,13 +116,13 @@ func getStringPropParams(i int, rdr *bufio.Reader) (count, newI int, err error) 
 
 // getBinaryDataPropParams should only be called by getProps. This function just calls getStringPropParams.
 // returns the number of bytes to be read, the new total of bytes read, and possibly an error.
-func getBinaryDataPropParams(i int, rdr *bufio.Reader) (count, newI int, err error) {
+func getBinaryDataPropParams(i int, rdr *packet.Reader) (count, newI int, err error) {
 	return getStringPropParams(i, rdr)
 }
 
 // getStringPairProp reads the entire UTF-8 string pair into a byte array. Should only be called by getProps.
 // Returns number of bytes read, the slice, and possibly an error.
-func getStringPairProp(rdr *bufio.Reader) (int, []byte, error) {
+func getStringPairProp(rdr *packet.Reader) (int, []byte, error) {
 	buf := make([]byte, 0)
 	msb, err := rdr.ReadByte()
 	if err != nil {
@@ -170,10 +169,10 @@ func getStringPairProp(rdr *bufio.Reader) (int, []byte, error) {
 	return bytesRead, buf, nil
 }
 
-// getProps gets all the properties for this packet. Throws error if that prop is not valid for the specified packetCode.
+// GetProps gets all the properties for this packet. Throws error if that prop is not valid for the specified packetCode.
 // packetCode is one of the defined
-func getProps(rdr *bufio.Reader, propLength, packetCode int) (map[int][]byte, [][]byte, error) {
-	if (packetCode == pingreqCode) || (packetCode == pingrespCode) {
+func GetProps(rdr *packet.Reader, propLength, packetCode int) (map[int][]byte, [][]byte, error) {
+	if (packetCode == PingreqCode) || (packetCode == PingrespCode) {
 		return nil, nil, errors.New("getProps not valid for pingReq or pingResp packets")
 	}
 
@@ -189,90 +188,90 @@ func getProps(rdr *bufio.Reader, propLength, packetCode int) (map[int][]byte, []
 		var validCodes []int
 		switch b {
 		case 0x01:
-			validCodes = []int{publishCode, willPropsCode}
+			validCodes = []int{PublishCode, WillPropsCode}
 			count = 1
 		case 0x02:
-			validCodes = []int{publishCode, willPropsCode}
+			validCodes = []int{PublishCode, WillPropsCode}
 			count = 4
 		case 0x03, 0x08: // UTF-8 String
-			validCodes = []int{publishCode, willPropsCode}
+			validCodes = []int{PublishCode, WillPropsCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
 		case 0x09: // Binary data
-			validCodes = []int{publishCode, willPropsCode}
+			validCodes = []int{PublishCode, WillPropsCode}
 			count, i, err = getBinaryDataPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
 		case 0x0B: // Variable Byte Integer
-			validCodes = []int{publishCode, subscribeCode}
+			validCodes = []int{PublishCode, SubscribeCode}
 			count = 0
 		case 0x11:
-			validCodes = []int{connectCode, connackCode, disconnectCode}
+			validCodes = []int{ConnectCode, ConnackCode, DisconnectCode}
 			count = 4
 		case 0x12:
-			validCodes = []int{connackCode}
+			validCodes = []int{ConnackCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
 		case 0x13:
-			validCodes = []int{connackCode}
+			validCodes = []int{ConnackCode}
 			count = 2
 		case 0x15:
-			validCodes = []int{connectCode, connackCode, authCode}
+			validCodes = []int{ConnectCode, ConnackCode, AuthCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
 		case 0x16:
-			validCodes = []int{connectCode, connackCode, authCode}
+			validCodes = []int{ConnectCode, ConnackCode, AuthCode}
 			count, i, err = getBinaryDataPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
 		case 0x17, 0x19:
-			validCodes = []int{connectCode}
+			validCodes = []int{ConnectCode}
 			count = 1
 		case 0x18:
-			validCodes = []int{willPropsCode}
+			validCodes = []int{WillPropsCode}
 			count = 4
 		case 0x1A:
-			validCodes = []int{connackCode}
+			validCodes = []int{ConnackCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
 		case 0x1C:
-			validCodes = []int{connackCode, disconnectCode}
+			validCodes = []int{ConnackCode, DisconnectCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
 		case 0x1F:
-			validCodes = []int{connackCode, pubackCode, pubrecCode, pubrelCode, pubcompCode, subackCode, unsubackCode, disconnectCode, authCode}
+			validCodes = []int{ConnackCode, PubackCode, PubrecCode, PubrelCode, PubcompCode, SubackCode, UnsubackCode, DisconnectCode, AuthCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
 		case 0x21, 0x22:
-			validCodes = []int{connectCode, connackCode}
+			validCodes = []int{ConnectCode, ConnackCode}
 			count = 2
 		case 0x23:
-			validCodes = []int{publishCode}
+			validCodes = []int{PublishCode}
 			count = 2
 		case 0x24, 0x25:
-			validCodes = []int{connackCode}
+			validCodes = []int{ConnackCode}
 			count = 1
 		case 0x26:
-			validCodes = []int{connectCode, connackCode, publishCode, willPropsCode, pubackCode, pubrecCode, pubrelCode, pubcompCode, subscribeCode, subackCode, unsubscribeCode, unsubackCode, disconnectCode, authCode}
+			validCodes = []int{ConnectCode, ConnackCode, PublishCode, WillPropsCode, PubackCode, PubrecCode, PubrelCode, PubcompCode, SubscribeCode, SubackCode, UnsubscribeCode, UnsubackCode, DisconnectCode, AuthCode}
 		case 0x27:
-			validCodes = []int{connectCode, connackCode}
+			validCodes = []int{ConnectCode, ConnackCode}
 			count = 4
 		case 0x28, 0x29, 0x2A:
-			validCodes = []int{connackCode}
+			validCodes = []int{ConnackCode}
 			count = 1
 		default:
 			msg := fmt.Sprintf("No matching case for code: %d", b)
@@ -293,7 +292,7 @@ func getProps(rdr *bufio.Reader, propLength, packetCode int) (map[int][]byte, []
 			}
 			userProps = append(userProps, prop)
 		} else if count == 0 { // this indicates it must be a Variable Byte Integer!
-			numRead, val, err := decodeVarByteInt(rdr)
+			numRead, val, err := DecodeVarByteInt(rdr)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -315,16 +314,16 @@ func getProps(rdr *bufio.Reader, propLength, packetCode int) (map[int][]byte, []
 	return m, userProps, nil
 }
 
-// decodeVarByteInt returns the integer value of a decoded Variable Byte Int according to MQTT v5.0 Spec.
+// DecodeVarByteInt returns the integer value of a decoded Variable Byte Int according to MQTT v5.0 Spec.
 // Returns number of bytes read, the integer, and possibly an error.
-func decodeVarByteInt(rdr *bufio.Reader) (int, uint32, error) {
+func DecodeVarByteInt(rdr *packet.Reader) (int, uint32, error) {
 	var multiplier, val uint32 = 1, 0
 	var b byte
 	var err error
-	i := 0
+	bytesRead := 0
 	for {
 		b, err = rdr.ReadByte()
-		i++
+		bytesRead++
 		if err != nil {
 			return 0, 0, err
 		}
@@ -337,10 +336,11 @@ func decodeVarByteInt(rdr *bufio.Reader) (int, uint32, error) {
 			break
 		}
 	}
-	return i, val, nil
+	return bytesRead, val, nil
 }
 
-func getConnectFlags(b byte) (*ConnectFlags, error) {
+// GetConnectFlags parses the given byte into flags for the connect packet.
+func GetConnectFlags(b byte) (*ConnectFlags, error) {
 	userNameFlag := ((b & 0x80) >> 7) == 1
 	passwordFlag := ((b & 0x40) >> 6) == 1
 	willRetain := ((b & 0x20) >> 5) == 1
@@ -360,18 +360,21 @@ func getConnectFlags(b byte) (*ConnectFlags, error) {
 	return flags, nil
 }
 
-func getRequestType(b byte) byte {
+// GetRequestType converts the given byte into another byte of the appropriate request type format.
+func GetRequestType(b byte) byte {
 	return (b & 0xF0) >> 4
 }
 
-func verifyProtocol(rdr *bufio.Reader) error {
+// VerifyProtocol verifies that the following bytes from the reader represent the correct protocol. Hint: it must be MQTT.
+// Assumes there are enough bytes to process the request.
+func VerifyProtocol(rdr *packet.Reader) (err error) {
 	msb, err := rdr.ReadByte()
 	if err != nil {
-		return err
+		return
 	}
 	lsb, err := rdr.ReadByte() // should be 00000100, i.e. 4
 	if err != nil {
-		return err
+		return
 	}
 	m, err := rdr.ReadByte()
 	if err != nil {
@@ -396,7 +399,8 @@ func verifyProtocol(rdr *bufio.Reader) error {
 	return nil
 }
 
-func getKeepAlive(rdr *bufio.Reader) (uint16, error) {
+// GetKeepAlive reads the following two bytes and turns it into a 2 bytes integer
+func GetKeepAlive(rdr *packet.Reader) (uint16, error) {
 	// Read 2 bytes and turn it to an integer
 	buf := make([]byte, 0)
 	for i := 0; i < 2; i++ {
