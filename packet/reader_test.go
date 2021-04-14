@@ -75,6 +75,7 @@ func TestSetRemainingLength(t *testing.T) {
 	checkRemainingLength(t, buf, 2, 3, 4, 4, false, true)
 	checkRemainingLength(t, buf, 2, 2, 2, 5, true, false)
 	checkRemainingLength(t, buf, 2, 2, 11, 5, true, true)
+	checkRemainingLength(t, buf, 5, 2, 0, 5, true, false)
 }
 
 func checkReadVarByteInt(t *testing.T, buf []byte, expectedByteCount int, expected uint32, shouldPass bool) {

@@ -82,6 +82,7 @@ func (client *Client) handleConnect() error {
 		return err
 	}
 	fmt.Printf("Client ID: %v\n", clientId)
+	// TODO: get rest of the payload
 
 	return nil
 }
