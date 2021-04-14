@@ -73,6 +73,7 @@ func (client *Client) handleConnect() error {
 	// Put them all in a map, then assign
 	fmt.Println(props)
 	fmt.Println(userProps)
+	// here
 
 	// Process the payload.
 	// first thing is a utf8 encoded string for the clientId.
@@ -83,6 +84,9 @@ func (client *Client) handleConnect() error {
 	}
 	fmt.Printf("Client ID: %v\n", clientId)
 	// TODO: get rest of the payload
+	if client.connectFlags.WillFlag {
+		// check all the will related things.
+	}
 
 	return nil
 }

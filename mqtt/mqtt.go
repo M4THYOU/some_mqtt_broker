@@ -30,6 +30,37 @@ const (
 	WillPropsCode   = 0x00 // not defined by the spec, but we use this in getProps.
 )
 
+// All the properties!
+const (
+	PayloadFormatIndicatorCode = 0x01
+	MessageExpiryIntervalCode  = 0x02
+	ContentTypeCode            = 0x03
+	ResponseTopicCode          = 0x08
+	CorrelationDataCode        = 0x09
+	SubscriptionIdCode         = 0x0B
+	SessionExpiryIntervalCode  = 0x11
+	AssignedClientIdCode       = 0x12
+	ServerKeepAliveCode        = 0x13
+	AuthenticationMethodCode   = 0x15
+	AuthenticationDataCode     = 0x16
+	RequestProblemInfoCode     = 0x17
+	WillDelayIntervalCode      = 0x18
+	RequestResponseInfoCode    = 0x19
+	ResponseInfoCode           = 0x1A
+	ServerReferenceCode        = 0x1C
+	ReasonStringCode           = 0x1F
+	ReceiveMaxCode             = 0x21
+	TopicAliasMaxCode          = 0x22
+	TopicAliasCode             = 0x23
+	MaxQoSCode                 = 0x24
+	RetainAvailableCode        = 0x25
+	UserPropertyCode           = 0x26
+	MaxPacketSizeCode          = 0x27
+	WildcardSubAvailableCode   = 0x28
+	SubIdAvailableCode         = 0x29
+	SharedSubAvailableCode     = 0x2A
+)
+
 // Define all the packet structs.
 type Connect struct {
 	// Variable Header
@@ -187,90 +218,90 @@ func GetProps(rdr *packet.Reader, propLength, packetCode int) (map[int][]byte, [
 		count := 0
 		var validCodes []int
 		switch b {
-		case 0x01:
+		case PayloadFormatIndicatorCode:
 			validCodes = []int{PublishCode, WillPropsCode}
 			count = 1
-		case 0x02:
+		case MessageExpiryIntervalCode:
 			validCodes = []int{PublishCode, WillPropsCode}
 			count = 4
-		case 0x03, 0x08: // UTF-8 String
+		case ContentTypeCode, ResponseTopicCode: // UTF-8 String
 			validCodes = []int{PublishCode, WillPropsCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
-		case 0x09: // Binary data
+		case CorrelationDataCode: // Binary data
 			validCodes = []int{PublishCode, WillPropsCode}
 			count, i, err = getBinaryDataPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
-		case 0x0B: // Variable Byte Integer
+		case SubscriptionIdCode: // Variable Byte Integer
 			validCodes = []int{PublishCode, SubscribeCode}
 			count = 0
-		case 0x11:
+		case SessionExpiryIntervalCode:
 			validCodes = []int{ConnectCode, ConnackCode, DisconnectCode}
 			count = 4
-		case 0x12:
+		case AssignedClientIdCode:
 			validCodes = []int{ConnackCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
-		case 0x13:
+		case ServerKeepAliveCode:
 			validCodes = []int{ConnackCode}
 			count = 2
-		case 0x15:
+		case AuthenticationMethodCode:
 			validCodes = []int{ConnectCode, ConnackCode, AuthCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
-		case 0x16:
+		case AuthenticationDataCode:
 			validCodes = []int{ConnectCode, ConnackCode, AuthCode}
 			count, i, err = getBinaryDataPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
-		case 0x17, 0x19:
+		case RequestProblemInfoCode, RequestResponseInfoCode:
 			validCodes = []int{ConnectCode}
 			count = 1
-		case 0x18:
+		case WillDelayIntervalCode:
 			validCodes = []int{WillPropsCode}
 			count = 4
-		case 0x1A:
+		case ResponseInfoCode:
 			validCodes = []int{ConnackCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
-		case 0x1C:
+		case ServerReferenceCode:
 			validCodes = []int{ConnackCode, DisconnectCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
-		case 0x1F:
+		case ReasonStringCode:
 			validCodes = []int{ConnackCode, PubackCode, PubrecCode, PubrelCode, PubcompCode, SubackCode, UnsubackCode, DisconnectCode, AuthCode}
 			count, i, err = getStringPropParams(i, rdr)
 			if err != nil {
 				return nil, nil, err
 			}
-		case 0x21, 0x22:
+		case ReceiveMaxCode, TopicAliasMaxCode:
 			validCodes = []int{ConnectCode, ConnackCode}
 			count = 2
-		case 0x23:
+		case TopicAliasCode:
 			validCodes = []int{PublishCode}
 			count = 2
-		case 0x24, 0x25:
+		case MaxQoSCode, RetainAvailableCode:
 			validCodes = []int{ConnackCode}
 			count = 1
-		case 0x26:
+		case UserPropertyCode:
 			validCodes = []int{ConnectCode, ConnackCode, PublishCode, WillPropsCode, PubackCode, PubrecCode, PubrelCode, PubcompCode, SubscribeCode, SubackCode, UnsubscribeCode, UnsubackCode, DisconnectCode, AuthCode}
-		case 0x27:
+		case MaxPacketSizeCode:
 			validCodes = []int{ConnectCode, ConnackCode}
 			count = 4
-		case 0x28, 0x29, 0x2A:
+		case WildcardSubAvailableCode, SubIdAvailableCode, SharedSubAvailableCode:
 			validCodes = []int{ConnackCode}
 			count = 1
 		default:
