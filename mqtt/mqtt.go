@@ -115,7 +115,6 @@ func GetClientId(rdr *packet.Reader) (string, error) {
 		// TODO implement some auto assigning clientId method.
 		return "one randomly", nil // LOL
 	}
-	fmt.Println(len)
 	s := make([]byte, 0)
 	for i := 0; i < len; i++ {
 		b, err := rdr.ReadByte()
@@ -124,8 +123,6 @@ func GetClientId(rdr *packet.Reader) (string, error) {
 		}
 		s = append(s, b)
 	}
-	fmt.Println(s)
-	fmt.Println(string(s[:]))
 	return string(s), nil
 }
 

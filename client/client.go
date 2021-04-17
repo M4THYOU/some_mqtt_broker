@@ -11,12 +11,20 @@ import (
 )
 
 type Client struct {
-	Conn                  net.Conn
-	Rdr                   *packet.Reader
-	connectFlags          *mqtt.ConnectFlags
-	KeepAlive             uint16
+	Conn         net.Conn
+	Rdr          *packet.Reader
+	connectFlags *mqtt.ConnectFlags
+	KeepAlive    uint16
+
+	// Connect Properties
 	SessionExpiryInterval uint32
 	ReceiveMaximum        uint16
+	MaxPacketSize         uint32 // because go is go, the default value is 0. However, according to spec the client must not set this to zero. Therefore, 0 => no limit.
+	TopicAliasMaximum     uint16
+	ReturnResponseInfo    bool // if true, return response info to the client in connack.
+	ReturnProblemInfo     bool // if true, maybe send proper reason string to client (CONNACK & DISCONNECT). Depends on log level though.
+	AuthMethod            string
+	AuthData              []byte
 }
 
 func (client *Client) handleConnect() error {
@@ -71,9 +79,9 @@ func (client *Client) handleConnect() error {
 	// TODO
 	// Do things with these props. Use a default value if not found.
 	// Put them all in a map, then assign
-	fmt.Println(props)
-	fmt.Println(userProps)
-	// here
+	fmt.Printf("Props: %v\n", props)
+	fmt.Printf("User Props: %v\n", userProps)
+	client.setProperties(mqtt.ConnectCode, props)
 
 	// Process the payload.
 	// first thing is a utf8 encoded string for the clientId.
@@ -84,9 +92,9 @@ func (client *Client) handleConnect() error {
 	}
 	fmt.Printf("Client ID: %v\n", clientId)
 	// TODO: get rest of the payload
-	if client.connectFlags.WillFlag {
-		// check all the will related things.
-	}
+	// if client.connectFlags.WillFlag {
+	// 	// check all the will related things.
+	// }
 
 	return nil
 }
