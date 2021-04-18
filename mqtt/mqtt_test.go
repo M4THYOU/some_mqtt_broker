@@ -514,5 +514,4 @@ func TestGetPropsWILL(t *testing.T) {
 	checkProps(t, 41, packetCode, payload, expected, expectedUProps, true)
 	// Empty props
 	checkProps(t, 0, packetCode, []byte{}, map[int][]byte{}, [][]byte{}, true)
-
 }
