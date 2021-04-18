@@ -82,28 +82,15 @@ type WillProps struct {
 // GetClientId gets the client ID from the next available bytes in the reader.
 // If length is 0, assigns one randomly.
 func GetClientId(rdr *packet.Reader) (string, error) {
-	msb, err := rdr.ReadByte()
+	_, clientId, err := rdr.ReadUtf8Str()
 	if err != nil {
 		return "", err
 	}
-	lsb, err := rdr.ReadByte()
-	if err != nil {
-		return "", err
-	}
-	len := int(binary.BigEndian.Uint16([]byte{msb, lsb}))
-	if len == 0 {
+	if clientId == "" {
 		// TODO implement some auto assigning clientId method.
-		return "one randomly", nil // LOL
+		clientId = "one randomly" // LOL
 	}
-	s := make([]byte, 0)
-	for i := 0; i < len; i++ {
-		b, err := rdr.ReadByte()
-		if err != nil {
-			return "", err
-		}
-		s = append(s, b)
-	}
-	return string(s), nil
+	return clientId, nil
 }
 
 // getStringPropParams should only be called by getProps. Note that this function also works for Binary Data.
@@ -351,32 +338,12 @@ func GetRequestType(b byte) byte {
 // VerifyProtocol verifies that the following bytes from the reader represent the correct protocol. Hint: it must be MQTT.
 // Assumes there are enough bytes to process the request.
 func VerifyProtocol(rdr *packet.Reader) (err error) {
-	msb, err := rdr.ReadByte()
-	if err != nil {
-		return
-	}
-	lsb, err := rdr.ReadByte() // should be 00000100, i.e. 4
-	if err != nil {
-		return
-	}
-	m, err := rdr.ReadByte()
+	_, s, err := rdr.ReadUtf8Str()
 	if err != nil {
 		return err
 	}
-	q, err := rdr.ReadByte()
-	if err != nil {
-		return err
-	}
-	t1, err := rdr.ReadByte()
-	if err != nil {
-		return err
-	}
-	t2, err := rdr.ReadByte()
-	if err != nil {
-		return err
-	}
-	if msb != 0x00 || lsb != 0x04 || m != 'M' || q != 'Q' || t1 != 'T' || t2 != 'T' {
-		msg := fmt.Sprintf("Got invalid protocol:\n%08b\n%08b\n%08b\n%08b\n%08b\n\nExpected:\n%08b\n%08b\n%08b\n%08b\n%08b", lsb, m, q, t1, t2, 0x04, 'M', 'Q', 'T', 'T')
+	if s != "MQTT" {
+		msg := fmt.Sprintf("Got invalid protocol `%v` expected `MQTT`", s)
 		return errors.New(msg)
 	}
 	return nil
