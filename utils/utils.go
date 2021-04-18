@@ -25,3 +25,11 @@ func ReadBytesToSlice(count int, rdr *packet.Reader) ([]byte, error) {
 	}
 	return buf, nil
 }
+
+func Btoi(b bool) int {
+	if b {
+		return 1
+	} else {
+		return 0
+	}
+}

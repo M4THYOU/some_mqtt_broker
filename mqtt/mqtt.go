@@ -332,11 +332,6 @@ func GetConnectFlags(b byte) (*ConnectFlags, error) {
 	return flags, nil
 }
 
-// GetRequestType converts the given byte into another byte of the appropriate request type format.
-func GetRequestType(b byte) byte {
-	return (b & 0xF0) >> 4
-}
-
 // VerifyProtocol verifies that the following bytes from the reader represent the correct protocol. Hint: it must be MQTT.
 // Assumes there are enough bytes to process the request.
 func VerifyProtocol(rdr *packet.Reader) (err error) {

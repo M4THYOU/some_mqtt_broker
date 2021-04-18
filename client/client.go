@@ -129,6 +129,13 @@ func (client *Client) handleConnect() error {
 		client.Password = password
 	}
 
+	// send a CONNACK packet.
+	connack, err := client.BuildPacket(mqtt.ConnackCode)
+	if err != nil {
+		return err
+	}
+	mqtt.SendPacket(client.Conn, connack)
+
 	return nil
 }
 func (client *Client) handleConnack() error {
@@ -277,4 +284,17 @@ func (client *Client) ProcessPacket() error {
 	err = client.processVarHeader(reqType)
 	fmt.Printf("Packet processed.\n\n")
 	return err
+}
+
+func (client *Client) BuildPacket(packetCode uint8) ([]byte, error) {
+	packet := []byte{}
+	var reqType byte
+	if packetCode == mqtt.PublishCode {
+		// TODO HANDLE PUBLISH FLAGS!!
+		reqType = mqtt.SetRequestType(packetCode, false, false, 0)
+	} else {
+		reqType = mqtt.SetRequestType(packetCode, false, false, 0)
+	}
+	packet = append(packet, reqType)
+	return packet, nil
 }

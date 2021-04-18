@@ -13,9 +13,9 @@ import (
 
 func listen(c *client.Client) {
 	defer c.Conn.Close()
+	// to timeout hanging/broken connections.
+	c.Conn.SetDeadline(time.Now().Add(time.Second * 60))
 	for {
-		// to timeout hanging/broken connections.
-		c.Conn.SetDeadline(time.Now().Add(time.Second * 60))
 		err := c.ProcessPacket()
 		if err != nil {
 			fmt.Println("Error processing:", err.Error())

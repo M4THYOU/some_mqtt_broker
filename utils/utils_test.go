@@ -46,3 +46,18 @@ func TestReadBytesToSlice(t *testing.T) {
 	expected = buf[:3]
 	checkReadBytesToSlice(t, 3, buf, expected, true)
 }
+
+func checkBtoi(t *testing.T, expected int, b, shouldPass bool) {
+	res := Btoi(b)
+	if res != expected && shouldPass {
+		t.Fatalf("expected %v got %v", expected, res)
+	} else if res == expected && !shouldPass {
+		t.Fatalf("expected failure from input %v", b)
+	}
+}
+func TestBtoi(t *testing.T) {
+	checkBtoi(t, 1, true, true)
+	checkBtoi(t, 1, false, false)
+	checkBtoi(t, 0, true, false)
+	checkBtoi(t, 0, false, true)
+}
