@@ -35,7 +35,7 @@ func main() {
 	}
 	defer l.Close()
 
-	fmt.Println("Listening on " + host)
+	fmt.Printf("Listening on %v\n\n", host)
 	for {
 		conn, err := l.Accept()
 		if err != nil {
