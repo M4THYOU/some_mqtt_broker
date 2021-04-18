@@ -61,21 +61,6 @@ const (
 	SharedSubAvailableCode     = 0x2A
 )
 
-// Define all the packet structs.
-type Connect struct {
-	// Variable Header
-	KeepAlive uint16
-	// Properties (Still in Variable Header)
-	SessionExpiryInterval      uint32
-	ReceiveMaximum             uint16
-	MaximumPacketSize          uint32
-	TopicAliasMaximum          uint16
-	RequestResponseInformation uint8 // 0 or 1.
-	RequestProblemInformation  uint8 // 0 or 1.
-	UserProperty               []byte
-	AuthMethod                 string // up to 65,535 bytes.
-	AuthData                   []byte
-}
 type ConnectFlags struct {
 	UserNameFlag bool
 	PasswordFlag bool
@@ -93,20 +78,6 @@ type WillProps struct {
 	CorrelationData        []byte
 	UserProperty           []byte
 }
-type Connack struct{}
-type Publish struct{}
-type Puback struct{}
-type Pubrec struct{}
-type Pubrel struct{}
-type Pubcomp struct{}
-type Subscribe struct{}
-type Suback struct{}
-type Unsubscribe struct{}
-type Unsuback struct{}
-type Pingreq struct{}
-type Pingresp struct{}
-type Disconnect struct{}
-type Auth struct{}
 
 // GetClientId gets the client ID from the next available bytes in the reader.
 // If length is 0, assigns one randomly.
