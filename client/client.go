@@ -15,6 +15,8 @@ type Client struct {
 	Rdr          *packet.Reader
 	connectFlags *mqtt.ConnectFlags
 	KeepAlive    uint16
+	UserName     string
+	Password     []byte
 
 	// Connect Properties
 	SessionExpiryInterval uint32
@@ -30,8 +32,6 @@ type Client struct {
 }
 
 func (client *Client) handleConnect() error {
-	fmt.Println("Handle Connect")
-
 	// verify the protocol is set to 'MQTT'
 	err := mqtt.VerifyProtocol(client.Rdr)
 	if err != nil {
@@ -102,19 +102,37 @@ func (client *Client) handleConnect() error {
 		client.setWillProps(willProps)
 
 		// will topic, UTF-8 enc string
-		// _, willTopic, err := client.Rdr.ReadUtf8Str()
+		_, willTopic, err := client.Rdr.ReadUtf8Str()
 		if err != nil {
 			return err
 		}
+		client.WillProps.Topic = willTopic
 		// will payload, binary data
-
+		_, willPayload, err := client.Rdr.ReadBinaryData()
+		if err != nil {
+			return err
+		}
+		client.WillProps.Payload = willPayload
+	}
+	if client.connectFlags.UserNameFlag {
+		_, userName, err := client.Rdr.ReadUtf8Str()
+		if err != nil {
+			return err
+		}
+		client.UserName = userName
+	}
+	if client.connectFlags.PasswordFlag {
+		_, password, err := client.Rdr.ReadBinaryData()
+		if err != nil {
+			return err
+		}
+		client.Password = password
 	}
 
 	return nil
 }
 func (client *Client) handleConnack() error {
-	fmt.Println("Handle Connack")
-	log.Fatalln("Not yet implemented.")
+	log.Fatalln("Invalid Operation.")
 	return nil
 }
 func (client *Client) handlePublish() error {
@@ -143,8 +161,7 @@ func (client *Client) handlePubcomp() error {
 	return nil
 }
 func (client *Client) handleSubscribe() error {
-	fmt.Println("Handle Subscribe")
-	log.Fatalln("Not yet implemented.")
+	log.Fatalln("Invalid Operation.")
 	return nil
 }
 func (client *Client) handleSuback() error {
@@ -153,8 +170,7 @@ func (client *Client) handleSuback() error {
 	return nil
 }
 func (client *Client) handleUnsubscribe() error {
-	fmt.Println("Handle Unsubscribe")
-	log.Fatalln("Not yet implemented.")
+	log.Fatalln("Invalid Operation.")
 	return nil
 }
 func (client *Client) handleUnsuback() error {
@@ -163,8 +179,7 @@ func (client *Client) handleUnsuback() error {
 	return nil
 }
 func (client *Client) handlePingreq() error {
-	fmt.Println("Handle Pingreq")
-	log.Fatalln("Not yet implemented.")
+	log.Fatalln("Invalid Operation.")
 	return nil
 }
 func (client *Client) handlePingresp() error {
@@ -186,11 +201,11 @@ func (client *Client) handleAuth() error {
 // processFixedHeader processes the fixed header.
 // Returns the request type code, remaining length of the packet, and maybe an error.
 func (client *Client) processFixedHeader() (byte, int, error) {
-	fmt.Println("(fixed header)")
 	b1, err := client.Rdr.ReadByte()
 	if err != nil {
 		return 0x00, 0, err
 	}
+	fmt.Println("(fixed header)")
 
 	reqType := mqtt.GetRequestType(b1)
 	if reqType == mqtt.PublishCode {
@@ -251,6 +266,7 @@ func (client *Client) processVarHeader(reqType byte) (err error) {
 }
 
 func (client *Client) ProcessPacket() error {
+	fmt.Println("Waiting for packet...")
 	// fixed header can be up to 5 bytes, so set that as the limit.
 	client.Rdr.SetRemainingLength(5)
 	reqType, remLen, err := client.processFixedHeader() // make this guy return remaining length!
@@ -259,5 +275,6 @@ func (client *Client) ProcessPacket() error {
 	}
 	client.Rdr.SetRemainingLength(remLen)
 	err = client.processVarHeader(reqType)
+	fmt.Printf("Packet processed.\n\n")
 	return err
 }

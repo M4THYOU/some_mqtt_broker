@@ -77,6 +77,8 @@ type WillProps struct {
 	ResponseTopic          string
 	CorrelationData        []byte
 	UserProperty           []byte
+	Topic                  string
+	Payload                []byte
 }
 
 // GetClientId gets the client ID from the next available bytes in the reader.
