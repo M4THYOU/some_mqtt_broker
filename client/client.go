@@ -56,34 +56,29 @@ func (client *Client) handleConnect() error {
 	}
 	client.connectFlags = flags
 
+	// KeepAlive
 	keepAlive, err := mqtt.GetKeepAlive(client.Rdr)
 	if err != nil {
 		return err
 	}
 	client.KeepAlive = keepAlive
 
-	fmt.Println(client)
-
-	// And now for the properties!
-	// TODO
+	// Handle the properties!
 	_, propLength, err := client.Rdr.ReadVarByteInt()
 	if err != nil {
 		return err
 	}
-	fmt.Println(propLength)
-
 	props, userProps, err := mqtt.GetProps(client.Rdr, int(propLength), mqtt.ConnectCode)
 	if err != nil {
 		return err
 	}
-	// TODO
-	// Do things with these props. Use a default value if not found.
-	// Put them all in a map, then assign
+	fmt.Printf("Flags: %v\n", client.connectFlags)
 	fmt.Printf("Props: %v\n", props)
 	fmt.Printf("User Props: %v\n", userProps)
 	client.setProperties(mqtt.ConnectCode, props)
 
-	// Process the payload.
+	//// Process the payload ////
+
 	// first thing is a utf8 encoded string for the clientId.
 	// If zero length, assign one from the server.
 	clientId, err := mqtt.GetClientId(client.Rdr)
@@ -92,9 +87,13 @@ func (client *Client) handleConnect() error {
 	}
 	fmt.Printf("Client ID: %v\n", clientId)
 	// TODO: get rest of the payload
-	// if client.connectFlags.WillFlag {
-	// 	// check all the will related things.
-	// }
+	if client.connectFlags.WillFlag {
+		_, propLength, err = client.Rdr.ReadVarByteInt()
+		if err != nil {
+			return err
+		}
+		// willProps, willUserProps, err := mqtt.GetProps(client.Rdr, int(propLength), mqtt.WillPropsCode)
+	}
 
 	return nil
 }

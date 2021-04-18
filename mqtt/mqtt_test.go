@@ -387,6 +387,28 @@ func checkProps(t *testing.T, propLen, packetCode int, buf []byte, expectedM map
 		t.Fatalf("incorrect userProps. Got:\n%v\nExpected:\n%v", userProps, expectedUserProps)
 	}
 }
+
+// basicUserPropsTest just runs a few simple tests on user properties for the given packet.
+// shouldPass is true when testing a packet that does accept user properties and false when not.
+func basicUserPropsTest(t *testing.T, packetCode int, shouldPass bool) {
+	// simple one.
+	expected := map[int][]byte{}
+	expectedUProps := [][]byte{userProperty[1:]}
+	checkProps(t, 8, packetCode, userProperty, expected, expectedUProps, shouldPass)
+	// multiple userProps, using the same one.
+	payload := append(userProperty, userProperty...)
+	expected = map[int][]byte{}
+	expectedUProps = [][]byte{userProperty[1:], userProperty[1:]}
+	checkProps(t, 16, packetCode, payload, expected, expectedUProps, shouldPass)
+	// multiple userProps, using different ones.
+	payload = append(userProperty, userProperty2...)
+	expected = map[int][]byte{}
+	expectedUProps = [][]byte{userProperty[1:], userProperty2[1:]}
+	checkProps(t, 16, packetCode, payload, expected, expectedUProps, shouldPass)
+}
+
+// use [1:] for the result of most prop types to strip off the leading indicator.
+// use [3:] for UTF-8 strings (and binary because we parse it the same way) to also strip off the 2 byte length.
 func TestGetPropsCONNECT(t *testing.T) {
 	// The basics
 	packetCode := ConnectCode
@@ -396,60 +418,101 @@ func TestGetPropsCONNECT(t *testing.T) {
 	checkProps(t, 11, packetCode, responseTopic, nil, nil, false)
 	checkProps(t, 7, packetCode, correlationData, nil, nil, false)
 	checkProps(t, 2, packetCode, subscriptionId, nil, nil, false)
-	expected := map[int][]byte{0x11: sessionExpiryInterval[1:]}
+	expected := map[int][]byte{SessionExpiryIntervalCode: sessionExpiryInterval[1:]}
 	checkProps(t, 2, packetCode, sessionExpiryInterval, expected, [][]byte{}, true)
 	checkProps(t, 4, packetCode, assignedClientId, nil, nil, false)
 	checkProps(t, 3, packetCode, serverKeepAlive, nil, nil, false)
-	expected = map[int][]byte{0x15: authenticationMethod[3:]}
+	expected = map[int][]byte{AuthenticationMethodCode: authenticationMethod[3:]}
 	checkProps(t, 14, packetCode, authenticationMethod, expected, [][]byte{}, true)
-	expected = map[int][]byte{0x16: authenticationData[3:]}
+	expected = map[int][]byte{AuthenticationDataCode: authenticationData[3:]}
 	checkProps(t, 5, packetCode, authenticationData, expected, [][]byte{}, true)
-	expected = map[int][]byte{0x17: requestProblemInfo[1:]}
+	expected = map[int][]byte{RequestProblemInfoCode: requestProblemInfo[1:]}
 	checkProps(t, 2, packetCode, requestProblemInfo, expected, [][]byte{}, true)
 	checkProps(t, 5, packetCode, willDelayInterval, nil, nil, false)
-	expected = map[int][]byte{0x19: requestResponseInfo[1:]}
+	expected = map[int][]byte{RequestResponseInfoCode: requestResponseInfo[1:]}
 	checkProps(t, 2, packetCode, requestResponseInfo, expected, [][]byte{}, true)
 	checkProps(t, 14, packetCode, responseInfo, nil, nil, false)
 	checkProps(t, 14, packetCode, serverReference, nil, nil, false)
 	checkProps(t, 9, packetCode, reasonString, nil, nil, false)
-	expected = map[int][]byte{0x21: receiveMax[1:]}
+	expected = map[int][]byte{ReceiveMaxCode: receiveMax[1:]}
 	checkProps(t, 3, packetCode, receiveMax, expected, [][]byte{}, true)
-	expected = map[int][]byte{0x22: topicAliasMax[1:]}
+	expected = map[int][]byte{TopicAliasMaxCode: topicAliasMax[1:]}
 	checkProps(t, 3, packetCode, topicAliasMax, expected, [][]byte{}, true)
 	checkProps(t, 3, packetCode, topicAlias, nil, nil, false)
 	checkProps(t, 2, packetCode, maxQoS, nil, nil, false)
 	checkProps(t, 2, packetCode, retainAvailable, nil, nil, false)
-	expected = map[int][]byte{}
-	expectedUProps := [][]byte{userProperty[1:]}
-	checkProps(t, 8, packetCode, userProperty, expected, expectedUProps, true)
-	expected = map[int][]byte{0x27: maxPacketSize[1:]}
+	expected = map[int][]byte{MaxPacketSizeCode: maxPacketSize[1:]}
 	checkProps(t, 5, packetCode, maxPacketSize, expected, [][]byte{}, true)
 	checkProps(t, 2, packetCode, wildcardSubAvailable, nil, nil, false)
 	checkProps(t, 2, packetCode, subIdAvailable, nil, nil, false)
 	checkProps(t, 2, packetCode, sharedSubAvailable, nil, nil, false)
+	basicUserPropsTest(t, packetCode, true)
 	// Special ones.
-	// multiple userProps, using the same one.
-	payload := append(userProperty, userProperty...)
-	expected = map[int][]byte{}
-	expectedUProps = [][]byte{userProperty[1:], userProperty[1:]}
-	checkProps(t, 16, packetCode, payload, expected, expectedUProps, true)
-	// multiple userProps, using different ones.
-	payload = append(userProperty, userProperty2...)
-	expected = map[int][]byte{}
-	expectedUProps = [][]byte{userProperty[1:], userProperty2[1:]}
-	checkProps(t, 16, packetCode, payload, expected, expectedUProps, true)
-	// multiple different valid properties
-	payload = append(authenticationData, append(sessionExpiryInterval, authenticationMethod...)...)
-	expected = map[int][]byte{0x15: authenticationMethod[3:], 0x16: authenticationData[3:], 0x11: sessionExpiryInterval[1:]}
+	payload := append(authenticationData, append(sessionExpiryInterval, authenticationMethod...)...)
+	expected = map[int][]byte{AuthenticationMethodCode: authenticationMethod[3:], AuthenticationDataCode: authenticationData[3:], SessionExpiryIntervalCode: sessionExpiryInterval[1:]}
 	checkProps(t, 24, packetCode, payload, expected, [][]byte{}, true)
 	// multiple different properties with one invalid
 	payload = append(authenticationData, append(sessionExpiryInterval, append(authenticationMethod, serverKeepAlive...)...)...)
 	checkProps(t, 27, packetCode, payload, nil, nil, false)
 	// userProps + other props in some random order.
 	payload = append(authenticationData, append(userProperty, append(sessionExpiryInterval, append(userProperty2, authenticationMethod...)...)...)...)
-	expected = map[int][]byte{0x15: authenticationMethod[3:], 0x16: authenticationData[3:], 0x11: sessionExpiryInterval[1:]}
-	expectedUProps = [][]byte{userProperty[1:], userProperty2[1:]}
+	expected = map[int][]byte{AuthenticationMethodCode: authenticationMethod[3:], AuthenticationDataCode: authenticationData[3:], SessionExpiryIntervalCode: sessionExpiryInterval[1:]}
+	expectedUProps := [][]byte{userProperty[1:], userProperty2[1:]}
 	checkProps(t, 40, packetCode, payload, expected, expectedUProps, true)
 	// Empty props
 	checkProps(t, 0, packetCode, []byte{}, map[int][]byte{}, [][]byte{}, true)
+}
+
+func TestGetPropsWILL(t *testing.T) {
+	// The basics
+	packetCode := WillPropsCode
+	expected := map[int][]byte{PayloadFormatIndicatorCode: payloadFormatIndicator[1:]}
+	checkProps(t, 2, packetCode, payloadFormatIndicator, expected, [][]byte{}, true)
+	expected = map[int][]byte{MessageExpiryIntervalCode: messageExpiryInterval[1:]}
+	checkProps(t, 5, packetCode, messageExpiryInterval, expected, [][]byte{}, true)
+	expected = map[int][]byte{ContentTypeCode: contentType[3:]}
+	checkProps(t, 5, packetCode, contentType, expected, [][]byte{}, true)
+	expected = map[int][]byte{ResponseTopicCode: responseTopic[3:]}
+	checkProps(t, 11, packetCode, responseTopic, expected, [][]byte{}, true)
+	expected = map[int][]byte{CorrelationDataCode: correlationData[3:]}
+	checkProps(t, 7, packetCode, correlationData, expected, [][]byte{}, true)
+	checkProps(t, 2, packetCode, subscriptionId, nil, nil, false)
+	checkProps(t, 2, packetCode, sessionExpiryInterval, nil, nil, false)
+	checkProps(t, 4, packetCode, assignedClientId, nil, nil, false)
+	checkProps(t, 3, packetCode, serverKeepAlive, nil, nil, false)
+	checkProps(t, 14, packetCode, authenticationMethod, nil, nil, false)
+	checkProps(t, 5, packetCode, authenticationData, nil, nil, false)
+	checkProps(t, 2, packetCode, requestProblemInfo, nil, nil, false)
+	expected = map[int][]byte{WillDelayIntervalCode: willDelayInterval[1:]}
+	checkProps(t, 5, packetCode, willDelayInterval, expected, [][]byte{}, true)
+	checkProps(t, 2, packetCode, requestResponseInfo, nil, nil, false)
+	checkProps(t, 14, packetCode, responseInfo, nil, nil, false)
+	checkProps(t, 14, packetCode, serverReference, nil, nil, false)
+	checkProps(t, 9, packetCode, reasonString, nil, nil, false)
+	checkProps(t, 3, packetCode, receiveMax, nil, nil, false)
+	checkProps(t, 3, packetCode, topicAliasMax, nil, nil, false)
+	checkProps(t, 3, packetCode, topicAlias, nil, nil, false)
+	checkProps(t, 2, packetCode, maxQoS, nil, nil, false)
+	checkProps(t, 2, packetCode, retainAvailable, nil, nil, false)
+	checkProps(t, 5, packetCode, maxPacketSize, nil, nil, false)
+	checkProps(t, 2, packetCode, wildcardSubAvailable, nil, nil, false)
+	checkProps(t, 2, packetCode, subIdAvailable, nil, nil, false)
+	checkProps(t, 2, packetCode, sharedSubAvailable, nil, nil, false)
+	basicUserPropsTest(t, packetCode, true)
+	// Special ones.
+	// multiple different valid properties
+	payload := append(willDelayInterval, append(correlationData, messageExpiryInterval...)...)
+	expected = map[int][]byte{CorrelationDataCode: correlationData[3:], MessageExpiryIntervalCode: messageExpiryInterval[1:], WillDelayIntervalCode: willDelayInterval[1:]}
+	checkProps(t, 17, packetCode, payload, expected, [][]byte{}, true)
+	// multiple different properties with one invalid
+	payload = append(authenticationData, append(willDelayInterval, append(messageExpiryInterval, correlationData...)...)...)
+	checkProps(t, 27, packetCode, payload, nil, nil, false)
+	// userProps + other props in some random order.
+	payload = append(willDelayInterval, append(userProperty, append(responseTopic, append(userProperty2, contentType...)...)...)...)
+	expected = map[int][]byte{WillDelayIntervalCode: willDelayInterval[1:], ContentTypeCode: contentType[3:], ResponseTopicCode: responseTopic[3:]}
+	expectedUProps := [][]byte{userProperty[1:], userProperty2[1:]}
+	checkProps(t, 41, packetCode, payload, expected, expectedUProps, true)
+	// Empty props
+	checkProps(t, 0, packetCode, []byte{}, map[int][]byte{}, [][]byte{}, true)
+
 }
