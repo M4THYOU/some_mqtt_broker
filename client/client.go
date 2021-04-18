@@ -88,7 +88,8 @@ func (client *Client) handleConnect() error {
 		return err
 	}
 	fmt.Printf("Client ID: %v\n", clientId)
-	// TODO: get rest of the payload
+
+	// Check for will things in the payload.
 	if client.connectFlags.WillFlag {
 		_, propLength, err = client.Rdr.ReadVarByteInt()
 		if err != nil {
@@ -99,6 +100,11 @@ func (client *Client) handleConnect() error {
 			return err
 		}
 		client.setWillProps(willProps)
+
+		// will topic, UTF-8 enc string
+		// client.Rdr.ReadVarByteInt()
+
+		// will payload, binary data
 	}
 
 	return nil

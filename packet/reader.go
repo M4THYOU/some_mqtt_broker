@@ -2,6 +2,7 @@ package packet
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"io"
 )
@@ -45,10 +46,10 @@ func (rdr *Reader) ReadVarByteInt() (int, uint32, error) {
 	bytesRead := 0
 	for {
 		b, err = rdr.ReadByte()
-		bytesRead++
 		if err != nil {
 			return 0, 0, err
 		}
+		bytesRead++
 		val += uint32(b&0x7F) * multiplier
 		if multiplier > 128*128*128 {
 			return 0, 0, errors.New("malformed variable byte integer")
@@ -59,4 +60,34 @@ func (rdr *Reader) ReadVarByteInt() (int, uint32, error) {
 		}
 	}
 	return bytesRead, val, nil
+}
+
+// ReadUtf8Str returns the string value of a decoded UTF-8 string according to MQTT v5.0 Spec.
+// Returns number of bytes read, the string, and possibly an error.
+func (rdr *Reader) ReadUtf8Str() (int, string, error) {
+	bytesRead := 0
+	msb, err := rdr.ReadByte()
+	if err != nil {
+		return bytesRead, "", err
+	}
+	bytesRead++
+	lsb, err := rdr.ReadByte()
+	if err != nil {
+		return bytesRead, "", err
+	}
+	bytesRead++
+	len := int(binary.BigEndian.Uint16([]byte{msb, lsb}))
+	if len == 0 {
+		return bytesRead, "", nil
+	}
+	s := make([]byte, 0)
+	for i := 0; i < len; i++ {
+		b, err := rdr.ReadByte()
+		if err != nil {
+			return bytesRead, "", err
+		}
+		bytesRead++
+		s = append(s, b)
+	}
+	return bytesRead, string(s), nil
 }
