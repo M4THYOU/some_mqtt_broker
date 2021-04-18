@@ -102,9 +102,12 @@ func (client *Client) handleConnect() error {
 		client.setWillProps(willProps)
 
 		// will topic, UTF-8 enc string
-		// client.Rdr.ReadVarByteInt()
-
+		// _, willTopic, err := client.Rdr.ReadUtf8Str()
+		if err != nil {
+			return err
+		}
 		// will payload, binary data
+
 	}
 
 	return nil

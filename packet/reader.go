@@ -65,29 +65,36 @@ func (rdr *Reader) ReadVarByteInt() (int, uint32, error) {
 // ReadUtf8Str returns the string value of a decoded UTF-8 string according to MQTT v5.0 Spec.
 // Returns number of bytes read, the string, and possibly an error.
 func (rdr *Reader) ReadUtf8Str() (int, string, error) {
+	bytesRead, s, err := rdr.ReadBinaryData()
+	return bytesRead, string(s), err
+}
+
+// ReadBinaryData returns an slice of bytes representing Binary Data according to MQTT v5.0 Spec.
+// Returns number of bytes read, the slice, and possibly an error.
+func (rdr *Reader) ReadBinaryData() (int, []byte, error) {
+	s := make([]byte, 0)
 	bytesRead := 0
 	msb, err := rdr.ReadByte()
 	if err != nil {
-		return bytesRead, "", err
+		return bytesRead, s, err
 	}
 	bytesRead++
 	lsb, err := rdr.ReadByte()
 	if err != nil {
-		return bytesRead, "", err
+		return bytesRead, s, err
 	}
 	bytesRead++
 	len := int(binary.BigEndian.Uint16([]byte{msb, lsb}))
 	if len == 0 {
-		return bytesRead, "", nil
+		return bytesRead, s, nil
 	}
-	s := make([]byte, 0)
 	for i := 0; i < len; i++ {
 		b, err := rdr.ReadByte()
 		if err != nil {
-			return bytesRead, "", err
+			return bytesRead, s, err
 		}
 		bytesRead++
 		s = append(s, b)
 	}
-	return bytesRead, string(s), nil
+	return bytesRead, s, nil
 }
