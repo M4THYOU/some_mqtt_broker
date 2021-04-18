@@ -14,4 +14,6 @@ const (
 	DefaultTopicAliasMaximum     = 0
 	DefaultRequestResponseInfo   = false
 	DefaultRequestProblemInfo    = true
+	DefaultWillDelayInterval     = 0
+	DefaultMessageExpiryInterval = 0 // => don't send Message Expiry Interval when publishing.
 )

@@ -25,6 +25,8 @@ type Client struct {
 	ReturnProblemInfo     bool // if true, maybe send proper reason string to client (CONNACK & DISCONNECT). Depends on log level though.
 	AuthMethod            string
 	AuthData              []byte
+
+	WillProps *mqtt.WillProps
 }
 
 func (client *Client) handleConnect() error {
@@ -92,7 +94,11 @@ func (client *Client) handleConnect() error {
 		if err != nil {
 			return err
 		}
-		// willProps, willUserProps, err := mqtt.GetProps(client.Rdr, int(propLength), mqtt.WillPropsCode)
+		willProps, _, err := mqtt.GetProps(client.Rdr, int(propLength), mqtt.WillPropsCode)
+		if err != nil {
+			return err
+		}
+		client.setWillProps(willProps)
 	}
 
 	return nil

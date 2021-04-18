@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/M4THYOU/some_mqtt_broker/mqtt"
@@ -40,8 +39,6 @@ func checkConnectProps(t *testing.T, expectedClient *Client, props map[int][]byt
 		t.Fatalf("incorrect AuthMethod. Got %v expected %v", c.AuthMethod, expectedClient.AuthMethod)
 	}
 	if !cmp.Equal(c.AuthData, expectedClient.AuthData) && shouldPass {
-		x := cmp.Equal(c.AuthData, expectedClient.AuthData)
-		fmt.Println(x)
 		t.Fatalf("incorrect AuthData. Got %v expected %v", c.AuthData, expectedClient.AuthData)
 	}
 }
@@ -103,5 +100,72 @@ func TestSetConnectProps(t *testing.T) {
 	delete(props, mqtt.AuthenticationMethodCode)
 	checkConnectProps(t, expectedClient, props, false)
 	props[mqtt.AuthenticationMethodCode] = []byte{0x53, 0x43, 0x52, 0x41, 0x4d, 0x2d, 0x53, 0x48, 0x41, 0x2d, 0x31}
+}
 
+func checkWillProps(t *testing.T, expectedClient *Client, props map[int][]byte, shouldPass bool) {
+	c := &Client{} // create dummy client
+	err := c.setWillProps(props)
+	if err != nil && shouldPass {
+		t.Fatalf("setWillProps failed: %v", err.Error())
+	}
+	if c.WillProps.WillDelayInterval != expectedClient.WillProps.WillDelayInterval && shouldPass {
+		t.Fatalf("incorrect WillDelayInterval. Got %v expected %v", c.WillProps.WillDelayInterval, expectedClient.WillProps.WillDelayInterval)
+	}
+	if c.WillProps.PayloadFormatIndicator != expectedClient.WillProps.PayloadFormatIndicator && shouldPass {
+		t.Fatalf("incorrect PayloadFormatIndicator. Got %v expected %v", c.WillProps.PayloadFormatIndicator, expectedClient.WillProps.PayloadFormatIndicator)
+	}
+	if c.WillProps.MessageExpiryInterval != expectedClient.WillProps.MessageExpiryInterval && shouldPass {
+		t.Fatalf("incorrect MessageExpiryInterval. Got %v expected %v", c.WillProps.MessageExpiryInterval, expectedClient.WillProps.MessageExpiryInterval)
+	}
+	if c.WillProps.ContentType != expectedClient.WillProps.ContentType && shouldPass {
+		t.Fatalf("incorrect ContentType. Got %v expected %v", c.WillProps.ContentType, expectedClient.WillProps.ContentType)
+	}
+	if c.WillProps.ResponseTopic != expectedClient.WillProps.ResponseTopic && shouldPass {
+		t.Fatalf("incorrect ResponseTopic. Got %v expected %v", c.WillProps.ResponseTopic, expectedClient.WillProps.ResponseTopic)
+	}
+	if !cmp.Equal(c.WillProps.CorrelationData, expectedClient.WillProps.CorrelationData) && shouldPass {
+		t.Fatalf("incorrect CorrelationData. Got %v expected %v", c.WillProps.CorrelationData, expectedClient.WillProps.CorrelationData)
+	}
+}
+func TestSetWillProps(t *testing.T) {
+	// No payload
+	var nilSlice []byte
+	expectedClient := &Client{
+		WillProps: &mqtt.WillProps{
+			WillDelayInterval:      0,
+			PayloadFormatIndicator: 0,
+			MessageExpiryInterval:  0,
+			ContentType:            "",
+			ResponseTopic:          "",
+			CorrelationData:        nilSlice,
+		},
+	}
+	props := map[int][]byte{}
+	checkWillProps(t, expectedClient, props, true)
+
+	// Full Payload
+	expectedClient = &Client{
+		WillProps: &mqtt.WillProps{
+			WillDelayInterval:      2148343340,
+			PayloadFormatIndicator: 1,
+			MessageExpiryInterval:  60,
+			ContentType:            "json",
+			ResponseTopic:          "my/response/topic",
+			CorrelationData:        []byte{0x02, 0xFF, 0x6B},
+		},
+	}
+	props = map[int][]byte{
+		mqtt.WillDelayIntervalCode:      {0x80, 0x0D, 0x1E, 0x2C},
+		mqtt.PayloadFormatIndicatorCode: {0x01},
+		mqtt.MessageExpiryIntervalCode:  {0x00, 0x00, 0x00, 0x3C},
+		mqtt.ContentTypeCode:            {0x6a, 0x73, 0x6f, 0x6e},
+		mqtt.ResponseTopicCode:          {0x6d, 0x79, 0x2f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2f, 0x74, 0x6f, 0x70, 0x69, 0x63},
+		mqtt.CorrelationDataCode:        {0x02, 0xFF, 0x6B},
+	}
+	checkWillProps(t, expectedClient, props, true)
+
+	// check each fail condition.
+	props[mqtt.PayloadFormatIndicatorCode] = []byte{0x03}
+	checkWillProps(t, expectedClient, props, false)
+	props[mqtt.PayloadFormatIndicatorCode] = []byte{0x01}
 }

@@ -115,7 +115,37 @@ func (client *Client) setAuthProps(props map[int][]byte) error {
 
 // Not part of spec.
 func (client *Client) setWillProps(props map[int][]byte) error {
-	return errors.New("setProperties: Case not implemented yet for Will")
+	if client.WillProps == nil {
+		client.WillProps = &mqtt.WillProps{}
+	}
+	if v, ok := props[mqtt.PayloadFormatIndicatorCode]; ok {
+		v_i := uint8(v[0]) // it's a single byte that can only be 0 or 1.
+		if v_i != 0 && v_i != 1 {
+			msg := fmt.Sprintf("setProperties: invalid PayloadFormatIndicator %d for WillProps", v_i)
+			return errors.New(msg)
+		}
+		client.WillProps.PayloadFormatIndicator = v_i
+	}
+	if v, ok := props[mqtt.MessageExpiryIntervalCode]; ok {
+		client.WillProps.MessageExpiryInterval = binary.BigEndian.Uint32(v)
+	} else {
+		client.WillProps.MessageExpiryInterval = config.DefaultMessageExpiryInterval
+	}
+	if v, ok := props[mqtt.ContentTypeCode]; ok {
+		client.WillProps.ContentType = string(v)
+	}
+	if v, ok := props[mqtt.ResponseTopicCode]; ok {
+		client.WillProps.ResponseTopic = string(v)
+	}
+	if v, ok := props[mqtt.CorrelationDataCode]; ok {
+		client.WillProps.CorrelationData = v
+	}
+	if v, ok := props[mqtt.WillDelayIntervalCode]; ok {
+		client.WillProps.WillDelayInterval = binary.BigEndian.Uint32(v)
+	} else {
+		client.WillProps.WillDelayInterval = config.DefaultWillDelayInterval
+	}
+	return nil
 }
 
 func (client *Client) setProperties(packetType int, props map[int][]byte) (err error) {

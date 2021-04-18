@@ -72,9 +72,9 @@ type Connect struct {
 	TopicAliasMaximum          uint16
 	RequestResponseInformation uint8 // 0 or 1.
 	RequestProblemInformation  uint8 // 0 or 1.
-	UserProperty               utils.Utf8StringPair
-	AuthMethod                 []byte // up to 65,535 bytes.
-	AuthData                   utils.BinaryData
+	UserProperty               []byte
+	AuthMethod                 string // up to 65,535 bytes.
+	AuthData                   []byte
 }
 type ConnectFlags struct {
 	UserNameFlag bool
@@ -83,6 +83,15 @@ type ConnectFlags struct {
 	WillQos      uint8 // consisting only of 2 bits. Valid values are 0, 1, 2. Not 3!
 	WillFlag     bool
 	CleanStart   bool
+}
+type WillProps struct {
+	WillDelayInterval      uint32
+	PayloadFormatIndicator uint8 // 0 or 1.
+	MessageExpiryInterval  uint32
+	ContentType            string
+	ResponseTopic          string
+	CorrelationData        []byte
+	UserProperty           []byte
 }
 type Connack struct{}
 type Publish struct{}
