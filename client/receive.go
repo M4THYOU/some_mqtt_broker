@@ -107,13 +107,7 @@ func (client *Client) handleConnect() error {
 	}
 
 	// send a CONNACK packet.
-	connack, err := client.BuildPacket(mqtt.ConnackCode)
-	if err != nil {
-		return err
-	}
-	mqtt.SendPacket(client.Conn, connack)
-
-	return nil
+	return client.SendPacket(mqtt.ConnackCode)
 }
 func (client *Client) handleConnack() error {
 	log.Fatalln("Invalid Operation.")
