@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/M4THYOU/some_mqtt_broker/packet"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/packet"
 	"github.com/google/go-cmp/cmp"
 )
 

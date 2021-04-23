@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/M4THYOU/some_mqtt_broker/mqtt"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/mqtt"
 )
 
 func (client *Client) SendPacket(packetCode uint8) error {

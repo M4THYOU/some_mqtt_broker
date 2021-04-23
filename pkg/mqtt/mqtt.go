@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/M4THYOU/some_mqtt_broker/packet"
-	"github.com/M4THYOU/some_mqtt_broker/utils"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/packet"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/utils"
 )
 
 var _ = fmt.Printf // For debugging; delete when done.

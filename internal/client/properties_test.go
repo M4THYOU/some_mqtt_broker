@@ -3,7 +3,7 @@ package client
 import (
 	"testing"
 
-	"github.com/M4THYOU/some_mqtt_broker/mqtt"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/mqtt"
 	"github.com/google/go-cmp/cmp"
 )
 

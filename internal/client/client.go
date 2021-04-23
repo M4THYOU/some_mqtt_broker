@@ -6,8 +6,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/M4THYOU/some_mqtt_broker/mqtt"
-	"github.com/M4THYOU/some_mqtt_broker/packet"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/mqtt"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/packet"
 )
 
 type Client struct {

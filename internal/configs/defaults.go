@@ -1,4 +1,4 @@
-package config
+package defaults
 
 const (
 	Host          = "localhost"

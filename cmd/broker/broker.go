@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/M4THYOU/some_mqtt_broker/client"
-	"github.com/M4THYOU/some_mqtt_broker/config"
-	"github.com/M4THYOU/some_mqtt_broker/packet"
+	"github.com/M4THYOU/some_mqtt_broker/internal/client"
+	defaults "github.com/M4THYOU/some_mqtt_broker/internal/configs"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/packet"
 )
 
 func listen(c *client.Client) {
@@ -27,8 +27,8 @@ func listen(c *client.Client) {
 
 func main() {
 	fmt.Println("Starting the server...")
-	host := config.Host + ":" + config.Port
-	l, err := net.Listen(config.ConType, host)
+	host := defaults.Host + ":" + defaults.Port
+	l, err := net.Listen(defaults.ConType, host)
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
 		os.Exit(1)

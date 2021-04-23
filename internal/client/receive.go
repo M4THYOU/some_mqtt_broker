@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/M4THYOU/some_mqtt_broker/mqtt"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/mqtt"
 )
 
 func (client *Client) handleConnect() error {

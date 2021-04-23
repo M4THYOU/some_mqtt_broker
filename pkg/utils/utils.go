@@ -1,6 +1,6 @@
 package utils
 
-import "github.com/M4THYOU/some_mqtt_broker/packet"
+import "github.com/M4THYOU/some_mqtt_broker/pkg/packet"
 
 // IsIntInSlice checks if the provided integer is in the provided slice of integers.
 func IsIntInSlice(i int, arr []int) bool {

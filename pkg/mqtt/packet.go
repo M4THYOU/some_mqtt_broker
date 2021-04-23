@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/M4THYOU/some_mqtt_broker/utils"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/utils"
 )
 
 // GetRequestType converts the given byte into another byte of the appropriate request type format.

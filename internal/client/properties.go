@@ -5,15 +5,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/M4THYOU/some_mqtt_broker/config"
-	"github.com/M4THYOU/some_mqtt_broker/mqtt"
+	defaults "github.com/M4THYOU/some_mqtt_broker/internal/configs"
+	"github.com/M4THYOU/some_mqtt_broker/pkg/mqtt"
 )
 
 func (client *Client) setConnectProps(props map[int][]byte) error {
 	if v, ok := props[mqtt.SessionExpiryIntervalCode]; ok {
 		client.SessionExpiryInterval = binary.BigEndian.Uint32(v)
 	} else {
-		client.SessionExpiryInterval = config.DefaultSessionExpiryInterval
+		client.SessionExpiryInterval = defaults.DefaultSessionExpiryInterval
 	}
 	if v, ok := props[mqtt.ReceiveMaxCode]; ok {
 		v_i := binary.BigEndian.Uint16(v)
@@ -23,7 +23,7 @@ func (client *Client) setConnectProps(props map[int][]byte) error {
 		}
 		client.ReceiveMaximum = v_i
 	} else {
-		client.ReceiveMaximum = config.DefaultReceiveMaximum
+		client.ReceiveMaximum = defaults.DefaultReceiveMaximum
 	}
 	if v, ok := props[mqtt.MaxPacketSizeCode]; ok {
 		v_i := binary.BigEndian.Uint32(v)
@@ -36,7 +36,7 @@ func (client *Client) setConnectProps(props map[int][]byte) error {
 	if v, ok := props[mqtt.TopicAliasMaxCode]; ok {
 		client.TopicAliasMaximum = binary.BigEndian.Uint16(v)
 	} else {
-		client.TopicAliasMaximum = config.DefaultTopicAliasMaximum
+		client.TopicAliasMaximum = defaults.DefaultTopicAliasMaximum
 	}
 	if v, ok := props[mqtt.RequestResponseInfoCode]; ok {
 		v_i := uint(v[0]) // it's a single byte that can only be 0 or 1.
@@ -46,7 +46,7 @@ func (client *Client) setConnectProps(props map[int][]byte) error {
 		}
 		client.ReturnResponseInfo = (v_i == 1)
 	} else {
-		client.ReturnResponseInfo = config.DefaultRequestResponseInfo
+		client.ReturnResponseInfo = defaults.DefaultRequestResponseInfo
 	}
 	if v, ok := props[mqtt.RequestProblemInfoCode]; ok {
 		v_i := uint(v[0]) // it's a single byte that can only be 0 or 1.
@@ -56,7 +56,7 @@ func (client *Client) setConnectProps(props map[int][]byte) error {
 		}
 		client.ReturnProblemInfo = (v_i == 1)
 	} else {
-		client.ReturnProblemInfo = config.DefaultRequestProblemInfo
+		client.ReturnProblemInfo = defaults.DefaultRequestProblemInfo
 	}
 	if v, ok := props[mqtt.AuthenticationMethodCode]; ok {
 		client.AuthMethod = string(v)
@@ -129,7 +129,7 @@ func (client *Client) setWillProps(props map[int][]byte) error {
 	if v, ok := props[mqtt.MessageExpiryIntervalCode]; ok {
 		client.WillProps.MessageExpiryInterval = binary.BigEndian.Uint32(v)
 	} else {
-		client.WillProps.MessageExpiryInterval = config.DefaultMessageExpiryInterval
+		client.WillProps.MessageExpiryInterval = defaults.DefaultMessageExpiryInterval
 	}
 	if v, ok := props[mqtt.ContentTypeCode]; ok {
 		client.WillProps.ContentType = string(v)
@@ -143,7 +143,7 @@ func (client *Client) setWillProps(props map[int][]byte) error {
 	if v, ok := props[mqtt.WillDelayIntervalCode]; ok {
 		client.WillProps.WillDelayInterval = binary.BigEndian.Uint32(v)
 	} else {
-		client.WillProps.WillDelayInterval = config.DefaultWillDelayInterval
+		client.WillProps.WillDelayInterval = defaults.DefaultWillDelayInterval
 	}
 	return nil
 }
