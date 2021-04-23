@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/M4THYOU/some_mqtt_broker/internal/client"
-	defaults "github.com/M4THYOU/some_mqtt_broker/internal/configs"
+	"github.com/M4THYOU/some_mqtt_broker/internal/defaults"
 	"github.com/M4THYOU/some_mqtt_broker/pkg/packet"
 )
 

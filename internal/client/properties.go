@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	defaults "github.com/M4THYOU/some_mqtt_broker/internal/configs"
+	"github.com/M4THYOU/some_mqtt_broker/internal/defaults"
 	"github.com/M4THYOU/some_mqtt_broker/pkg/mqtt"
 )
 
